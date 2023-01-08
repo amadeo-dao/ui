@@ -1,15 +1,13 @@
+import { useContext } from 'react';
 import { numberFormat } from '../lib/formats';
-import { Vault } from '../lib/vault';
+import VaultContext from '../lib/hooks/useVault';
 import Section from './Section';
 
-export type CurrentSharePriceProps = {
-  vault: Vault;
-};
-
-export default function CurrentSharePrice(props: CurrentSharePriceProps) {
+export default function CurrentSharePrice() {
+  const vault = useContext(VaultContext);
   return (
     <Section heading="Current Share Price">
-      {numberFormat(props.vault.sharePrice, props.vault.asset.symbol)}
+      {numberFormat(vault.sharePrice, vault.asset.symbol)}
     </Section>
   );
 }

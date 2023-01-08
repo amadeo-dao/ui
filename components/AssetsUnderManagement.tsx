@@ -1,20 +1,13 @@
+import { useContext } from 'react';
 import { numberFormat } from '../lib/formats';
-import { Vault } from '../lib/vault';
+import VaultContext from '../lib/hooks/useVault';
 import Section from './Section';
 
-export type AssetsUnderManagementProps = {
-  vault: Vault;
-};
-
-export default function AssetsUnderManagement(
-  props: AssetsUnderManagementProps
-) {
+export default function AssetsUnderManagement() {
+  const vault = useContext(VaultContext);
   return (
     <Section heading="Assets Under Management">
-      {numberFormat(
-        props.vault.assetsUnderManagement,
-        props.vault.asset.symbol
-      )}
+      {numberFormat(vault.assetsUnderManagement, vault.asset.symbol)}
     </Section>
   );
 }

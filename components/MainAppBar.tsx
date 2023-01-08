@@ -1,13 +1,15 @@
 import { Grid, Typography } from '@mui/material';
 import { ConnectKitButton } from 'connectkit';
-import { Vault } from '../lib/vault';
+import { useContext } from 'react';
+import VaultContext from '../lib/hooks/useVault';
 
-export default function MainAppBar(props: { vault: Vault }) {
+export default function MainAppBar() {
+  const vault = useContext(VaultContext);
   return (
     <Grid container mt={'1em'}>
       <Grid item xs={2}></Grid>
       <Grid item xs={6}>
-        <Typography variant="h4">{props.vault.name}</Typography>
+        <Typography variant="h4">{vault.name}</Typography>
       </Grid>
       <Grid item xs={2} textAlign="right">
         <ConnectKitButton></ConnectKitButton>

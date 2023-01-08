@@ -1,15 +1,13 @@
+import { useContext } from 'react';
 import { numberFormat } from '../lib/formats';
-import { Vault } from '../lib/vault';
+import VaultContext from '../lib/hooks/useVault';
 import Section from './Section';
 
-export type VaultTotalSupplyProps = {
-  vault: Vault;
-};
-
-export default function VaultTotalSupply(props: VaultTotalSupplyProps) {
+export default function VaultTotalSupply() {
+  const vault = useContext(VaultContext);
   return (
     <Section heading="Total Shares">
-      {numberFormat(props.vault.totalSupply, props.vault.symbol)}
+      {numberFormat(vault.totalSupply, vault.symbol)}
     </Section>
   );
 }
