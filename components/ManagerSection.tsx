@@ -1,6 +1,6 @@
 import { Grid } from '@mui/material';
+import ReturnFunds from './ManagerSection/ReturnFunds';
 import WithdrawFunds from './ManagerSection/WithdrawFunds';
-import Section from './Section';
 
 export default function ManagerSection() {
   return (
@@ -12,7 +12,7 @@ export default function ManagerSection() {
             <WithdrawFunds></WithdrawFunds>
           </Grid>
           <Grid item xs={6}>
-            <Section heading="Return Funds to Vault"></Section>
+            <ReturnFunds></ReturnFunds>
           </Grid>
         </Grid>
       </Grid>

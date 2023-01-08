@@ -11,6 +11,9 @@
         "name": "Next.js: debug client-side",
         "type": "chrome",
         "request": "launch",
+        "userDataDir": false,
+        "runtimeArgs": ["--profile-directory=Profile 3",],
+        "webRoot": "${workspaceFolder}/.next",
         "url": "http://localhost:3000"
       },
       {
