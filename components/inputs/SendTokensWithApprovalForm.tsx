@@ -1,6 +1,5 @@
 import { RestartAltOutlined, SendOutlined } from '@mui/icons-material';
 import {
-  Box,
   Button,
   CircularProgress,
   FormControl,
@@ -12,25 +11,33 @@ import {
 import { BigNumber, BigNumberish } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils.js';
 import React, { ChangeEvent, useState } from 'react';
+import {
+  erc20ABI,
+  useContractWrite,
+  usePrepareContractWrite,
+  useSendTransaction
+} from 'wagmi';
 import { ERC20 } from '../../lib/erc20';
+import EvmAddress from '../../lib/evmAddress';
 
 export type SendTokensWithApprovalFormProps = {
   defaultValue?: BigNumberish;
   maxValue?: BigNumberish;
   asset: ERC20;
+  recipient: EvmAddress;
 };
 function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
   const [submitValue, setSubmitValue] = useState<BigNumber | null>(null);
   const [value, setValue] = useState<string>(
     formatFormValue(props.defaultValue)
   );
-
-  function onValueChange(
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) {
-    setValue(e.target.value);
-    setSubmitValue(parseFormValue(e.target.value));
-  }
+  const { config: approveConfig } = usePrepareContractWrite({
+    address: props.asset.address,
+    abi: erc20ABI,
+    functionName: 'approve',
+    args: [props.recipient, submitValue ?? BigNumber.from('0')]
+  });
+  const { write: sendApproveTx } = useContractWrite(approveConfig);
 
   function formatFormValue(value?: BigNumberish | null): string {
     return formatUnits(value ?? '0', props.asset.decimals);
@@ -42,6 +49,18 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
     } catch (e) {
       return null;
     }
+  }
+
+  function onValueChange(
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
+    setValue(e.target.value);
+    setSubmitValue(parseFormValue(e.target.value));
+  }
+
+  function onApproveButtonClick() {
+    if (!submitValue || submitValue.eq('0')) return;
+    sendApproveTx?.();
   }
 
   return (
@@ -73,10 +92,10 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
       <Grid item xs={5}>
         <Button
           variant="contained"
-          color={'success'}
+          color={'primary'}
           fullWidth
-          disableRipple
-          startIcon={<CircularProgress size={16} color={'inherit'} />}
+          onClick={() => onApproveButtonClick()}
+          /* startIcon={<CircularProgress size={16} color={'inherit'} />}*/
         >
           Approve
         </Button>

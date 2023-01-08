@@ -46,6 +46,7 @@ function ReturnFunds() {
       <Box mt="1em" textAlign={'left'}>
         <SendTokensWithApprovalForm
           asset={vault.asset}
+          recipient={vault.address}
         ></SendTokensWithApprovalForm>
       </Box>
     </Section>
