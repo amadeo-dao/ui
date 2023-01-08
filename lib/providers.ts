@@ -1,6 +1,9 @@
-import { ethers } from "ethers";
+import { ethers } from 'ethers';
 
-export const provider = new ethers.providers.AlchemyProvider(
-    'homestead',
-    process.env.ALCHEMY_KEY
-  );
+export const provider =
+  process.env.NODE_ENV === 'development'
+    ? new ethers.providers.JsonRpcProvider({ url: 'http://localhost:8545' })
+    : new ethers.providers.AlchemyProvider(
+        'homestead',
+        process.env.ALCHEMY_KEY
+      );

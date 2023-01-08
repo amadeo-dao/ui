@@ -1,9 +1,8 @@
 import Head from 'next/head';
 import { CssBaseline } from '@mui/material';
 
-import { configureChains, createClient, WagmiConfig } from 'wagmi';
+import { createClient, WagmiConfig } from 'wagmi';
 import { mainnet, goerli } from 'wagmi/chains';
-import { publicProvider } from 'wagmi/providers/public';
 
 import { ConnectKitProvider, getDefaultClient } from 'connectkit';
 
@@ -12,16 +11,23 @@ import VaultSummary from '../components/VaultSummary';
 import MainAppBar from '../components/MainAppBar';
 import ManagerSection from '../components/ManagerSection';
 
+import _ from 'lodash';
+
 export default function Home(props: any) {
-  const { chains, provider, webSocketProvider } = configureChains(
-    [mainnet],
-    [publicProvider()]
-  );
+  const anvil = _.extend(mainnet, {
+    id: 1337,
+    name: 'Localhost',
+    network: 'anvil',
+    rpcUrls: {
+      default: { http: ['http://localhost:8545'] }
+    }
+  });
 
   const client = createClient(
     getDefaultClient({
       appName: 'Coinflakes Investment Vault',
-      chains: [mainnet, goerli]
+      chains:
+        process.env.NODE_ENV === 'development' ? [anvil] : [mainnet, goerli]
     })
   );
 
@@ -36,10 +42,6 @@ export default function Home(props: any) {
               content="initial-scale=1, width=device-width"
             />
             <link rel="icon" href="/favicon.ico" />
-            <link
-              rel="stylesheet"
-              href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
-            />
           </Head>
           <CssBaseline />
           <MainAppBar vault={props.vault}></MainAppBar>

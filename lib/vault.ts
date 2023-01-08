@@ -16,7 +16,6 @@ export async function loadVault(): Promise<Vault> {
   if (!vault) {
     const contract = new ethers.Contract(address, vaultAbi, provider);
     const { symbol, name, decimals, totalSupply } = await loadERC20(address);
-    console.log(totalSupply);
     const sharePrice = await contract.convertToAssets(
       BigNumber.from(10).pow('' + decimals ?? 18)
     );
