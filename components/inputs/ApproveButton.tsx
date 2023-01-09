@@ -18,6 +18,7 @@ export type ApproveButtonProps = {
   token: EvmAddress;
   amountNeeded?: BigNumber | null;
   approveInfinite?: boolean;
+  setState?: (approvalState: boolean) => void;
 };
 
 function ApproveButton(props: ApproveButtonProps) {
@@ -25,6 +26,7 @@ function ApproveButton(props: ApproveButtonProps) {
   const [isDisabled, setDisabled] = useState(true);
   const [isLoading, setLoading] = useState(false);
   const [isSuccess, setSuccess] = useState(false);
+
   const {
     data: allowance,
     isError: allowanceError,
@@ -36,18 +38,21 @@ function ApproveButton(props: ApproveButtonProps) {
     functionName: 'allowance',
     args: [props.owner ?? '0x0', props.spender]
   });
+
   const { config: approveConfig } = usePrepareContractWrite({
     address: props.token,
     abi: erc20ABI,
     functionName: 'approve',
     args: [props.spender, props.amountNeeded ?? BN_ZERO]
   });
+
   const {
     data: approveResponse,
     write: approveWrite,
     isLoading: approveLoading,
     isError: approveError
   } = useContractWrite(approveConfig);
+
   const { data: approveTxReceipt } = useWaitForTransaction({
     hash: approveResponse?.hash
   });
@@ -79,6 +84,10 @@ function ApproveButton(props: ApproveButtonProps) {
     else if (allowance?.gte(props.amountNeeded)) setSuccess(true);
     else setSuccess(false);
   }, [allowance, props.amountNeeded]);
+
+  useEffect(() => {
+    props.setState?.(isSuccess);
+  }, [isSuccess, props.setState]);
 
   function onButtonClick() {
     approveWrite?.();

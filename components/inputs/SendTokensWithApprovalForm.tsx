@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { BigNumber, BigNumberish } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils.js';
-import React, { ChangeEvent, useState } from 'react';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import {
   erc20ABI,
   useAccount,
@@ -47,11 +47,22 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
     }
   }
 
+  useEffect(() => {
+    setSubmitValue(parseFormValue(value));
+  }, [value]);
+
   function onValueChange(
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) {
     setValue(e.target.value);
-    setSubmitValue(parseFormValue(e.target.value));
+  }
+
+  function onMaxButtonClick() {
+    if (props.maxValue) setValue(formatFormValue(props.maxValue));
+  }
+
+  function onApprovalChange(isApproved: boolean) {
+    console.log('Approved: ' + isApproved);
   }
 
   return (
@@ -70,7 +81,12 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
             color={!!submitValue ? 'info' : 'error'}
             endAdornment={
               <InputAdornment position="end">
-                <Button variant="text" size="small" disableRipple>
+                <Button
+                  variant="text"
+                  size="small"
+                  disableRipple
+                  onClick={onMaxButtonClick}
+                >
                   Max
                 </Button>
                 {props.asset.symbol}
@@ -85,6 +101,7 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
           amountNeeded={submitValue}
           spender={props.recipient}
           token={props.asset.address}
+          setState={onApprovalChange}
         ></ApproveButton>
       </Grid>
       <Grid item xs={5}>

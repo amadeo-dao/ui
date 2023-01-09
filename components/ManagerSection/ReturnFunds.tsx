@@ -22,6 +22,7 @@ import { numberFormat } from '../../lib/formats';
 import VaultContext from '../../lib/hooks/useVault';
 import Section from '../Section';
 import SendTokensWithApprovalForm from '../inputs/SendTokensWithApprovalForm';
+import { BN_ZERO } from '../../lib/constants';
 
 function ReturnFunds() {
   const vault = useContext(VaultContext);
@@ -47,6 +48,8 @@ function ReturnFunds() {
         <SendTokensWithApprovalForm
           asset={vault.asset}
           recipient={vault.address}
+          maxValue={assets.data?.value}
+          defaultValue={BN_ZERO}
         ></SendTokensWithApprovalForm>
       </Box>
     </Section>
