@@ -13,12 +13,14 @@ import { formatUnits, parseUnits } from 'ethers/lib/utils.js';
 import React, { ChangeEvent, useState } from 'react';
 import {
   erc20ABI,
+  useAccount,
   useContractWrite,
   usePrepareContractWrite,
   useSendTransaction
 } from 'wagmi';
 import { ERC20 } from '../../lib/erc20';
 import EvmAddress from '../../lib/evmAddress';
+import ApproveButton from './ApproveButton';
 
 export type SendTokensWithApprovalFormProps = {
   defaultValue?: BigNumberish;
@@ -31,13 +33,7 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
   const [value, setValue] = useState<string>(
     formatFormValue(props.defaultValue)
   );
-  const { config: approveConfig } = usePrepareContractWrite({
-    address: props.asset.address,
-    abi: erc20ABI,
-    functionName: 'approve',
-    args: [props.recipient, submitValue ?? BigNumber.from('0')]
-  });
-  const { write: sendApproveTx } = useContractWrite(approveConfig);
+  const { address: owner } = useAccount();
 
   function formatFormValue(value?: BigNumberish | null): string {
     return formatUnits(value ?? '0', props.asset.decimals);
@@ -58,11 +54,6 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
     setSubmitValue(parseFormValue(e.target.value));
   }
 
-  function onApproveButtonClick() {
-    if (!submitValue || submitValue.eq('0')) return;
-    sendApproveTx?.();
-  }
-
   return (
     <Grid container spacing={1}>
       <Grid item xs={12}>
@@ -73,7 +64,6 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
           <OutlinedInput
             id="return-assets-input"
             size="small"
-            defaultValue="0"
             label="Assets to send to Vault"
             value={value}
             onChange={(e) => onValueChange(e)}
@@ -90,15 +80,12 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
         </FormControl>
       </Grid>
       <Grid item xs={5}>
-        <Button
-          variant="contained"
-          color={'primary'}
-          fullWidth
-          onClick={() => onApproveButtonClick()}
-          /* startIcon={<CircularProgress size={16} color={'inherit'} />}*/
-        >
-          Approve
-        </Button>
+        <ApproveButton
+          owner={owner}
+          amountNeeded={submitValue}
+          spender={props.recipient}
+          token={props.asset.address}
+        ></ApproveButton>
       </Grid>
       <Grid item xs={5}>
         <Button
