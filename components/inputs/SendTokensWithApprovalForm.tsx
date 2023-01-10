@@ -1,7 +1,6 @@
 import { RestartAltOutlined, SendOutlined } from '@mui/icons-material';
 import {
   Button,
-  CircularProgress,
   FormControl,
   Grid,
   InputAdornment,
@@ -10,14 +9,8 @@ import {
 } from '@mui/material';
 import { BigNumber, BigNumberish } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils.js';
-import React, { ChangeEvent, useEffect, useState } from 'react';
-import {
-  erc20ABI,
-  useAccount,
-  useContractWrite,
-  usePrepareContractWrite,
-  useSendTransaction
-} from 'wagmi';
+import React, { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { ERC20 } from '../../lib/erc20';
 import EvmAddress from '../../lib/evmAddress';
 import ApproveButton from './ApproveButton';
@@ -65,62 +58,68 @@ function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
     console.log('Approved: ' + isApproved);
   }
 
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+  }
+
   return (
-    <Grid container spacing={1}>
-      <Grid item xs={12}>
-        <FormControl fullWidth>
-          <InputLabel htmlFor="return-assets-input">
-            Assets to send to Vault
-          </InputLabel>
-          <OutlinedInput
-            id="return-assets-input"
-            size="small"
-            label="Assets to send to Vault"
-            value={value}
-            onChange={(e) => onValueChange(e)}
-            color={!!submitValue ? 'info' : 'error'}
-            endAdornment={
-              <InputAdornment position="end">
-                <Button
-                  variant="text"
-                  size="small"
-                  disableRipple
-                  onClick={onMaxButtonClick}
-                >
-                  Max
-                </Button>
-                {props.asset.symbol}
-              </InputAdornment>
-            }
-          ></OutlinedInput>
-        </FormControl>
+    <form onSubmit={onSubmit}>
+      <Grid container spacing={1}>
+        <Grid item xs={12}>
+          <FormControl fullWidth>
+            <InputLabel htmlFor="return-assets-input">
+              Assets to send to Vault
+            </InputLabel>
+            <OutlinedInput
+              id="return-assets-input"
+              size="small"
+              label="Assets to send to Vault"
+              value={value}
+              onChange={(e) => onValueChange(e)}
+              color={!!submitValue ? 'info' : 'error'}
+              endAdornment={
+                <InputAdornment position="end">
+                  <Button
+                    variant="text"
+                    size="small"
+                    disableRipple
+                    onClick={onMaxButtonClick}
+                  >
+                    Max
+                  </Button>
+                  {props.asset.symbol}
+                </InputAdornment>
+              }
+            ></OutlinedInput>
+          </FormControl>
+        </Grid>
+        <Grid item xs={5}>
+          <ApproveButton
+            owner={owner}
+            amountNeeded={submitValue}
+            spender={props.recipient}
+            token={props.asset.address}
+            setState={onApprovalChange}
+          ></ApproveButton>
+        </Grid>
+        <Grid item xs={5}>
+          <Button
+            variant="contained"
+            disabled
+            color={'primary'}
+            fullWidth
+            startIcon={<SendOutlined />}
+          >
+            Return Funds
+          </Button>
+        </Grid>
+        <Grid item xs={2}>
+          <Button variant="contained" color={'error'}>
+            <RestartAltOutlined />
+          </Button>
+        </Grid>
       </Grid>
-      <Grid item xs={5}>
-        <ApproveButton
-          owner={owner}
-          amountNeeded={submitValue}
-          spender={props.recipient}
-          token={props.asset.address}
-          setState={onApprovalChange}
-        ></ApproveButton>
-      </Grid>
-      <Grid item xs={5}>
-        <Button
-          variant="contained"
-          disabled
-          color={'primary'}
-          fullWidth
-          startIcon={<SendOutlined />}
-        >
-          Return Funds
-        </Button>
-      </Grid>
-      <Grid item xs={2}>
-        <Button variant="contained" color={'error'}>
-          <RestartAltOutlined />
-        </Button>
-      </Grid>
-    </Grid>
+    </form>
   );
 }
 

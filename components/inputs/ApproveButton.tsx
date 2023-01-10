@@ -49,6 +49,7 @@ function ApproveButton(props: ApproveButtonProps) {
   const {
     data: approveResponse,
     write: approveWrite,
+    reset: approveReset,
     isLoading: approveLoading,
     isError: approveError
   } = useContractWrite(approveConfig);
@@ -76,6 +77,7 @@ function ApproveButton(props: ApproveButtonProps) {
     else {
       setLoading(approveTxReceipt.confirmations < 1);
       setSuccess(approveTxReceipt.confirmations >= 1);
+      approveReset?.();
     }
   }, [approveLoading, approveResponse, approveTxReceipt]);
 
@@ -87,7 +89,7 @@ function ApproveButton(props: ApproveButtonProps) {
 
   useEffect(() => {
     props.setState?.(isSuccess);
-  }, [isSuccess, props.setState]);
+  }, [isSuccess]);
 
   function onButtonClick() {
     approveWrite?.();
