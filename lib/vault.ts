@@ -2,6 +2,7 @@ import vaultAbi from './vault.abi.json';
 import { BigNumber, ethers } from 'ethers';
 import { provider } from './providers';
 import { ERC20, loadERC20 } from './erc20';
+import EvmAddress from './evmAddress';
 
 export type Vault = ERC20 & {
   asset: ERC20;
@@ -12,10 +13,15 @@ export type Vault = ERC20 & {
 let vault: Vault | undefined;
 
 export async function loadVault(): Promise<Vault> {
-  const address = '0x430fd367dbbaebdae682060e0fd2b2b1583e0639';
+  const address = process.env.VAULT;
+  if (!address) throw new Error('VAULT environment variable not set');
+  if (!address.startsWith('0x'))
+    throw new Error('VAULT environment variable is not an EVM address');
   if (!vault) {
     const contract = new ethers.Contract(address, vaultAbi, provider);
-    const { symbol, name, decimals, totalSupply } = await loadERC20(address);
+    const { symbol, name, decimals, totalSupply } = await loadERC20(
+      address as EvmAddress
+    );
     const sharePrice = await contract.convertToAssets(
       BigNumber.from(10).pow('' + decimals ?? 18)
     );
@@ -25,7 +31,7 @@ export async function loadVault(): Promise<Vault> {
       .mul(sharePrice)
       .div(BigNumber.from(10).pow(decimals + ''));
     vault = {
-      address,
+      address: address as EvmAddress,
       name,
       symbol,
       decimals,
