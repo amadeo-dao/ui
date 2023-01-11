@@ -1,37 +1,32 @@
-import {
-  Box,
-  Button,
-  CircularProgress,
-  FormControl,
-  Grid,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  OutlinedInput,
-  Skeleton
-} from '@mui/material';
-import {
-  DoneOutline,
-  RestartAltOutlined,
-  SendOutlined
-} from '@mui/icons-material';
+import vaultAbi from '../../lib/vault.abi.json';
 
-import { ChangeEvent, useContext, useState } from 'react';
-import { useAccount, useBalance } from 'wagmi';
+import { Box, Skeleton } from '@mui/material';
+
+import { useContext, useState } from 'react';
+import { useAccount, useBalance, usePrepareContractWrite } from 'wagmi';
 import { numberFormat } from '../../lib/formats';
 import VaultContext from '../../lib/hooks/useVault';
 import Section from '../Section';
 import SendTokensWithApprovalForm from '../inputs/SendTokensWithApprovalForm';
 import { BN_ZERO } from '../../lib/constants';
+import { BigNumber } from 'ethers';
 
 function ReturnFunds() {
   const vault = useContext(VaultContext);
+  const [submitValue, setSubmitValue] = useState<BigNumber | null>();
   const { address } = useAccount();
 
   const assets = useBalance({
     address,
     token: vault.asset.address,
     watch: true
+  });
+
+  const { config: writeConfig } = usePrepareContractWrite({
+    address: vault.address,
+    functionName: 'returnAssets',
+    abi: vaultAbi,
+    args: [address ?? '0x0', submitValue ?? BN_ZERO]
   });
 
   return (
@@ -50,6 +45,8 @@ function ReturnFunds() {
           recipient={vault.address}
           maxValue={assets.data?.value}
           defaultValue={BN_ZERO}
+          writeConfig={writeConfig}
+          onSubmitValueChange={setSubmitValue}
         ></SendTokensWithApprovalForm>
       </Box>
     </Section>
