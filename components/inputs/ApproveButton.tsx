@@ -1,126 +1,81 @@
 import React, { useEffect, useState } from 'react';
-import EvmAddress from '../../lib/evmAddress';
 import { BigNumber } from 'ethers';
 import { Button, CircularProgress } from '@mui/material';
-import {
-  erc20ABI,
-  useContractRead,
-  useContractWrite,
-  usePrepareContractWrite,
-  useWaitForTransaction
-} from 'wagmi';
+import { useContractWrite, useWaitForTransaction } from 'wagmi';
 import { CheckOutlined, ErrorOutlined } from '@mui/icons-material';
-import { BN_ZERO } from '../../lib/constants';
+
+enum State {
+  Enabled,
+  Disabled,
+  Error,
+  Loading,
+  Success
+}
 
 export type ApproveButtonProps = {
-  owner?: EvmAddress;
-  spender: EvmAddress;
-  token: EvmAddress;
   amountNeeded?: BigNumber | null;
-  approveInfinite?: boolean;
-  setState?: (approvalState: boolean) => void;
+  allowance?: BigNumber;
+  txConfig: any;
+  onChange?: (approvalState: boolean) => void;
 };
 
 function ApproveButton(props: ApproveButtonProps) {
-  const [isError, setError] = useState(false);
-  const [isDisabled, setDisabled] = useState(true);
-  const [isLoading, setLoading] = useState(false);
-  const [isSuccess, setSuccess] = useState(false);
+  const [state, setState] = useState<State>(State.Disabled);
 
-  const {
-    data: allowance,
-    isError: allowanceError,
-    isLoading: allowanceLoading,
-    refetch: refetchAllowance
-  } = useContractRead({
-    address: props.token,
-    abi: erc20ABI,
-    functionName: 'allowance',
-    args: [props.owner ?? '0x0', props.spender]
-  });
+  const { data: txResponse, write, isIdle, isSuccess, isLoading, isError, error } = useContractWrite(props.txConfig);
 
-  const { config: approveConfig } = usePrepareContractWrite({
-    address: props.token,
-    abi: erc20ABI,
-    functionName: 'approve',
-    args: [props.spender, props.amountNeeded ?? BN_ZERO]
-  });
-
-  const {
-    data: approveResponse,
-    write: approveWrite,
-    reset: approveReset,
-    isLoading: approveLoading,
-    isError: approveError
-  } = useContractWrite(approveConfig);
-
-  const { data: approveTxReceipt } = useWaitForTransaction({
-    hash: approveResponse?.hash
-  });
-
-  useEffect(() => {
-    setError(allowanceError || approveError);
-  }, [allowanceError]);
-
-  useEffect(() => {
-    setDisabled(
-      !props.owner ||
-        allowanceLoading ||
-        !props.amountNeeded ||
-        props.amountNeeded.lte(BigNumber.from('0'))
-    );
-  }, [props.owner, allowanceLoading, props.amountNeeded]);
-
-  useEffect(() => {
-    if (approveLoading) setLoading(true);
-    else if (!approveTxReceipt) setLoading(!!approveResponse);
-    else {
-      setLoading(approveTxReceipt.confirmations < 1);
-      setSuccess(approveTxReceipt.confirmations >= 1);
-      approveReset?.();
+  useWaitForTransaction({
+    hash: txResponse?.hash,
+    onError: () => setState(State.Error),
+    onSuccess: (data) => {
+      if (data.confirmations >= 1) setState(State.Success);
+      props.onChange?.(true);
     }
-  }, [approveLoading, approveResponse, approveTxReceipt]);
+  });
 
   useEffect(() => {
-    if (!props.amountNeeded) setSuccess(false);
-    else if (allowance?.gte(props.amountNeeded)) setSuccess(true);
-    else setSuccess(false);
-  }, [allowance, props.amountNeeded]);
+    if (!props.txConfig) setState(State.Disabled);
+  }, [props.txConfig]);
 
   useEffect(() => {
-    props.setState?.(isSuccess);
-  }, [isSuccess]);
+    if (!props.amountNeeded || props.amountNeeded.lte('0')) setState(State.Disabled);
+    else if (!props.allowance) setState(State.Disabled);
+    else if (props.allowance.gte(props.amountNeeded)) setState(State.Success);
+    else setState(State.Enabled);
+  }, [props.allowance, props.amountNeeded]);
+
+  useEffect(() => {
+    if (isLoading) setState(State.Loading);
+    if (isSuccess) setState(State.Loading);
+    else if (isError) {
+      if (error?.toString().startsWith('UserRejected')) setState(State.Enabled);
+      else setState(State.Error);
+    }
+  }, [isLoading, isIdle, isError, isSuccess, error]);
+
+  useEffect(() => {
+    props.onChange?.(state === State.Success);
+  }, [state]);
 
   function onButtonClick() {
-    approveWrite?.();
+    write?.();
   }
 
-  if (isError)
+  if (state === State.Error)
     return (
-      <Button
-        variant="contained"
-        color={'error'}
-        fullWidth
-        disabled
-        startIcon={<ErrorOutlined color={'error'} />}
-      >
+      <Button variant="contained" color={'error'} fullWidth disabled startIcon={<ErrorOutlined color={'error'} />}>
         Approve
       </Button>
     );
 
-  if (isDisabled)
+  if (state === State.Disabled)
     return (
-      <Button
-        variant="contained"
-        color={'primary'}
-        fullWidth
-        disabled={isDisabled}
-      >
+      <Button variant="contained" color={'primary'} fullWidth disabled>
         Approve
       </Button>
     );
 
-  if (isLoading)
+  if (state === State.Loading)
     return (
       <Button
         variant="contained"
@@ -134,7 +89,7 @@ function ApproveButton(props: ApproveButtonProps) {
       </Button>
     );
 
-  if (isSuccess)
+  if (state === State.Success)
     return (
       <Button
         variant="contained"
@@ -149,17 +104,14 @@ function ApproveButton(props: ApproveButtonProps) {
       </Button>
     );
 
-  return (
-    <Button
-      variant="contained"
-      color={'primary'}
-      fullWidth
-      disabled={isDisabled}
-      onClick={onButtonClick}
-    >
-      Approve
-    </Button>
-  );
+  if (state === State.Enabled)
+    return (
+      <Button variant="contained" color={'primary'} fullWidth onClick={onButtonClick}>
+        Approve
+      </Button>
+    );
+
+  return <></>;
 }
 
 export default ApproveButton;

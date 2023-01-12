@@ -14,6 +14,7 @@ import { BigNumber } from 'ethers';
 function ReturnFunds() {
   const vault = useContext(VaultContext);
   const [submitValue, setSubmitValue] = useState<BigNumber | null>();
+  const [isApproved, setApproved] = useState<boolean>(false);
   const { address } = useAccount();
 
   const assets = useBalance({
@@ -26,8 +27,13 @@ function ReturnFunds() {
     address: vault.address,
     functionName: 'returnAssets',
     abi: vaultAbi,
-    args: [address ?? '0x0', submitValue ?? BN_ZERO]
+    args: [address ?? '0x0', submitValue ?? BN_ZERO],
+    enabled: !!submitValue && isApproved
   });
+
+  function onApprovalChange(newValue: boolean) {
+    setApproved(newValue);
+  }
 
   return (
     <Section heading="Return Funds to Vault" headingAlign="center">
@@ -47,6 +53,7 @@ function ReturnFunds() {
           defaultValue={BN_ZERO}
           writeConfig={writeConfig}
           onSubmitValueChange={setSubmitValue}
+          onApprovalChange={onApprovalChange}
         ></SendTokensWithApprovalForm>
       </Box>
     </Section>

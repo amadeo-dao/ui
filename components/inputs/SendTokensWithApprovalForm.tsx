@@ -1,38 +1,14 @@
-import {
-  CheckOutlined,
-  RestartAltOutlined,
-  SendOutlined
-} from '@mui/icons-material';
-import {
-  Button,
-  CircularProgress,
-  FormControl,
-  Grid,
-  InputAdornment,
-  InputLabel,
-  OutlinedInput
-} from '@mui/material';
+import { RestartAltOutlined } from '@mui/icons-material';
+import { Button, Grid } from '@mui/material';
 import { BigNumber, BigNumberish } from 'ethers';
-import { formatUnits, parseUnits } from 'ethers/lib/utils.js';
-import React, { ChangeEvent, FormEvent, useEffect, useState } from 'react';
-import {
-  useAccount,
-  useContractWrite,
-  usePrepareContractWrite,
-  useWaitForTransaction
-} from 'wagmi';
+import React, { FormEvent, useEffect, useRef, useState } from 'react';
+import { erc20ABI, useAccount, useContractRead, usePrepareContractWrite } from 'wagmi';
+import { BN_ZERO } from '../../lib/constants';
 import { ERC20 } from '../../lib/erc20';
 import EvmAddress from '../../lib/evmAddress';
 import ApproveButton from './ApproveButton';
-import { BN_ZERO } from '../../lib/constants';
-
-enum SubmitButtonState {
-  Disabled,
-  Enabled,
-  Loading,
-  Success,
-  Error
-}
+import AssetAmountTextField from './AssetAmountTextField';
+import SendTxButton, { SendTxButtonRef, TxState } from './SendTxButton';
 
 export type SendTokensWithApprovalFormProps = {
   defaultValue?: BigNumberish;
@@ -41,188 +17,93 @@ export type SendTokensWithApprovalFormProps = {
   recipient: EvmAddress;
   writeConfig: any;
   onSubmitValueChange: (submitValue: BigNumber | null) => void;
+  onApprovalChange: (approved: boolean) => void;
 };
 function SendTokensWithApprovalForm(props: SendTokensWithApprovalFormProps) {
-  const [submitValue, setSubmitValue] = useState<BigNumber | null>(null);
-  const [value, setValue] = useState<string>(
-    formatFormValue(props.defaultValue)
-  );
-  const [submitButtonState, setSubmitButtonState] = useState<SubmitButtonState>(
-    SubmitButtonState.Disabled
-  );
+  const resetRef = useRef<SendTxButtonRef>(null);
+  const [value, setValue] = useState<BigNumber | null>(null);
+  const [txState, setTxState] = useState<TxState>();
   const [isApproved, setApproved] = useState<boolean>(false);
 
   const { address: owner } = useAccount();
+  const { data: allowance, refetch: refetchAllowance } = useContractRead({
+    address: props.asset.address,
+    abi: erc20ABI,
+    functionName: 'allowance',
+    args: [owner ?? '0x0', props.recipient],
+    enabled: !!owner
+  });
 
-  const {
-    data: writeResponse,
-    write,
-    reset: writeReset,
-    isLoading: writeLoading,
-    isError: writeError
-  } = useContractWrite(props.writeConfig);
-
-  const { data: writeReceipt } = useWaitForTransaction({
-    hash: writeResponse?.hash
+  const { config: approveConfig } = usePrepareContractWrite({
+    address: props.asset.address,
+    abi: erc20ABI,
+    functionName: 'approve',
+    args: [props.recipient, value ?? BN_ZERO],
+    enabled: !!value && value.gt('0')
   });
 
   useEffect(() => {
-    props.onSubmitValueChange(submitValue);
-  }, [submitValue]);
-
-  useEffect(() => {
-    setSubmitValue(parseFormValue(value));
+    props.onSubmitValueChange(value);
   }, [value]);
 
   useEffect(() => {
-    if (!submitValue || submitValue.lte('0'))
-      setSubmitButtonState(SubmitButtonState.Disabled);
-    else if (!isApproved) setSubmitButtonState(SubmitButtonState.Disabled);
-    else setSubmitButtonState(SubmitButtonState.Enabled);
-  }, [isApproved, submitValue]);
+    props.onApprovalChange(isApproved);
+  }, [isApproved]);
 
-  useEffect(() => {
-    if (writeLoading) setSubmitButtonState(SubmitButtonState.Loading);
-    else if (writeResponse && !writeReceipt)
-      setSubmitButtonState(SubmitButtonState.Loading);
-    else if (writeReceipt) {
-      if (writeReceipt.confirmations > 0) {
-        setSubmitButtonState(SubmitButtonState.Success);
-        console.log(writeReceipt.confirmations);
-      } else setSubmitButtonState(SubmitButtonState.Loading);
-    } else {
-      setSubmitValue(parseFormValue(value));
-    }
-  }, [writeLoading, writeReceipt]);
-
-  useEffect(() => {
-    if (writeError) setSubmitButtonState(SubmitButtonState.Error);
-  }, [writeError]);
-
-  function onValueChange(
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) {
-    setValue(e.target.value);
-  }
-
-  function onMaxButtonClick() {
-    if (props.maxValue) setValue(formatFormValue(props.maxValue));
-  }
-
-  function onSubmit(e?: FormEvent<HTMLFormElement>) {
-    e?.preventDefault();
-    if (submitButtonState !== SubmitButtonState.Enabled) return;
-    write?.();
+  function onValueChange(newValue: BigNumber | null) {
+    setValue(newValue);
   }
 
   function onResetButtonClick() {
-    writeReset?.();
+    refetchAllowance();
+    resetRef.current?.reset();
+  }
+
+  function onTxStateChange(state: TxState) {
+    setTxState(state);
+  }
+
+  function onApprovalChange(success: boolean) {
+    setApproved(success);
+    refetchAllowance();
   }
 
   function isWriteSettled() {
-    return (
-      submitButtonState === SubmitButtonState.Success ||
-      submitButtonState === SubmitButtonState.Error
-    );
+    return txState === 'Success' || txState === 'Error';
   }
 
-  function formatFormValue(value?: BigNumberish | null): string {
-    return formatUnits(value ?? '0', props.asset.decimals);
-  }
-
-  function parseFormValue(value: string): BigNumber | null {
-    try {
-      return parseUnits(value, props.asset.decimals);
-    } catch (e) {
-      return null;
-    }
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
   }
 
   return (
     <form onSubmit={onSubmit}>
       <Grid container spacing={1}>
         <Grid item xs={12}>
-          <FormControl fullWidth>
-            <InputLabel htmlFor="return-assets-input">
-              Assets to send to Vault
-            </InputLabel>
-            <OutlinedInput
-              id="return-assets-input"
-              size="small"
-              label="Assets to send to Vault"
-              value={value}
-              onChange={(e) => onValueChange(e)}
-              color={!!submitValue ? 'info' : 'error'}
-              disabled={submitButtonState === SubmitButtonState.Loading}
-              endAdornment={
-                <InputAdornment position="end">
-                  <Button
-                    variant="text"
-                    size="small"
-                    disableRipple
-                    disabled={submitButtonState === SubmitButtonState.Loading}
-                    onClick={onMaxButtonClick}
-                  >
-                    Max
-                  </Button>
-                  {props.asset.symbol}
-                </InputAdornment>
-              }
-            ></OutlinedInput>
-          </FormControl>
+          <AssetAmountTextField
+            symbol={props.asset.symbol}
+            decimals={props.asset.decimals}
+            maxValue={props.maxValue}
+            onChange={onValueChange}
+            defaultValue={props.defaultValue}
+            disabled={txState === 'Loading'}
+          ></AssetAmountTextField>
         </Grid>
         <Grid item xs={isWriteSettled() ? 5 : 6}>
           <ApproveButton
-            owner={owner}
-            amountNeeded={submitValue}
-            spender={props.recipient}
-            token={props.asset.address}
-            setState={(success) => setApproved(success)}
+            txConfig={approveConfig}
+            allowance={allowance}
+            amountNeeded={value}
+            onChange={(success) => onApprovalChange(success)}
           ></ApproveButton>
         </Grid>
         <Grid item xs={isWriteSettled() ? 5 : 6}>
-          <Button
-            variant="contained"
-            disabled={submitButtonState === SubmitButtonState.Disabled}
-            color={
-              submitButtonState === SubmitButtonState.Success
-                ? 'success'
-                : 'primary'
-            }
-            fullWidth
-            onClick={() => onSubmit()}
-            disableElevation={submitButtonState !== SubmitButtonState.Enabled}
-            disableRipple={submitButtonState !== SubmitButtonState.Enabled}
-            startIcon={
-              submitButtonState === SubmitButtonState.Loading ? (
-                <CircularProgress size={16} color={'inherit'} />
-              ) : submitButtonState === SubmitButtonState.Success ? (
-                <CheckOutlined />
-              ) : (
-                <SendOutlined />
-              )
-            }
-            sx={{
-              cursor:
-                submitButtonState === SubmitButtonState.Enabled
-                  ? 'pointer'
-                  : 'default'
-            }}
-          >
-            Return Funds
-          </Button>
+          <SendTxButton txConfig={props.writeConfig} disabled={!isApproved} onStateChange={onTxStateChange} ref={resetRef}>
+            <>Return Funds</>
+          </SendTxButton>
         </Grid>
-        <Grid
-          item
-          xs={isWriteSettled() ? 2 : 0}
-          display={isWriteSettled() ? 'inherit' : 'none'}
-        >
-          <Button
-            aria-label="Reset Form"
-            variant="contained"
-            color={'error'}
-            onClick={() => onResetButtonClick()}
-          >
+        <Grid item xs={isWriteSettled() ? 2 : 0} display={isWriteSettled() ? 'inherit' : 'none'}>
+          <Button aria-label="Reset Form" variant="contained" color={'error'} onClick={() => onResetButtonClick()}>
             <RestartAltOutlined />
           </Button>
         </Grid>
