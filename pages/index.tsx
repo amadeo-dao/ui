@@ -15,7 +15,7 @@ import _ from 'lodash';
 import VaultContext from '../lib/hooks/useVault';
 
 export default function Home(props: any) {
-  const anvil = _.extend(mainnet, {
+  const anvil = _.extend({}, mainnet, {
     id: 1337,
     name: 'Localhost',
     network: 'anvil',
