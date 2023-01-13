@@ -2,6 +2,7 @@ import { CheckOutlined, ErrorOutlined, SendOutlined } from '@mui/icons-material'
 import { Button, CircularProgress } from '@mui/material';
 import React, { ForwardedRef, PropsWithChildren, useEffect, useImperativeHandle, useState } from 'react';
 import { useContractWrite, useWaitForTransaction } from 'wagmi';
+import { TxState } from '../../lib/TxState';
 
 export type SendTxButtonProps = {
   txConfig: any;
@@ -9,7 +10,6 @@ export type SendTxButtonProps = {
   onStateChange?: (newState: TxState, resetTx: () => void) => void;
 };
 
-export type TxState = 'Idle' | 'Loading' | 'Error' | 'Success';
 export type SendTxButtonRef = {
   reset: () => void;
 };

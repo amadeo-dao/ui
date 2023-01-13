@@ -6,9 +6,10 @@ import { erc20ABI, useAccount, useContractRead, usePrepareContractWrite } from '
 import { BN_ZERO } from '../../lib/constants';
 import { ERC20 } from '../../lib/erc20';
 import EvmAddress from '../../lib/evmAddress';
+import { TxState } from '../../lib/TxState';
 import ApproveButton from './ApproveButton';
 import AssetAmountTextField from './AssetAmountTextField';
-import SendTxButton, { SendTxButtonRef, TxState } from './SendTxButton';
+import SendTxButton, { SendTxButtonRef } from './SendTxButton';
 
 export type SendTokensWithApprovalFormProps = {
   defaultValue?: BigNumberish;

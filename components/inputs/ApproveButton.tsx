@@ -46,7 +46,7 @@ function ApproveButton(props: ApproveButtonProps) {
 
   useEffect(() => {
     if (isLoading) setState(State.Loading);
-    if (isSuccess) setState(State.Loading);
+    else if (isSuccess) setState(State.Loading);
     else if (isError) {
       if (error?.toString().startsWith('UserRejected')) setState(State.Enabled);
       else setState(State.Error);
