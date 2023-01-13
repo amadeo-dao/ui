@@ -1,13 +1,7 @@
-import {
-  Button,
-  FormControl,
-  InputAdornment,
-  InputLabel,
-  OutlinedInput
-} from '@mui/material';
+import { Button, FormControl, InputAdornment, InputLabel, OutlinedInput } from '@mui/material';
 import { BigNumber, BigNumberish } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils.js';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 export type AssetAmountTextFieldProps = {
   symbol: string;
@@ -15,13 +9,17 @@ export type AssetAmountTextFieldProps = {
   decimals?: number;
   defaultValue?: BigNumberish;
   maxValue?: BigNumberish;
+  id?: string;
   onChange: (newValue: BigNumber | null) => void;
 };
 
 function AssetAmountTextField(props: AssetAmountTextFieldProps) {
-  const [value, setValue] = useState<string>(
-    props.defaultValue ? formatValue(props.defaultValue) : ''
-  );
+  const [value, setValue] = useState<string>(props.defaultValue ? formatValue(props.defaultValue) : '');
+
+  const id = useMemo(() => {
+    if (props.id && props.id.length > 0) return props.id;
+    return 'asset-amount-input-field-' + Math.floor(Math.random() * 1000);
+  }, [props.id]);
 
   function formatValue(value?: BigNumberish | null): string {
     return formatUnits(value ?? '0', props.decimals ?? 18);
@@ -49,11 +47,9 @@ function AssetAmountTextField(props: AssetAmountTextFieldProps) {
 
   return (
     <FormControl fullWidth>
-      <InputLabel htmlFor="return-assets-input">
-        Assets to send to Vault
-      </InputLabel>
+      <InputLabel htmlFor={id}>Assets to send to Vault</InputLabel>
       <OutlinedInput
-        id="return-assets-input"
+        id={id}
         size="small"
         label="Assets to send to Vault"
         value={value}
@@ -64,13 +60,7 @@ function AssetAmountTextField(props: AssetAmountTextFieldProps) {
           <InputAdornment position="end">
             <>
               {props.maxValue && (
-                <Button
-                  variant="text"
-                  size="small"
-                  disableRipple
-                  disabled={!!props.disabled}
-                  onClick={onMaxButtonClick}
-                >
+                <Button variant="text" size="small" disableRipple disabled={!!props.disabled} onClick={onMaxButtonClick}>
                   Max
                 </Button>
               )}
