@@ -3,7 +3,7 @@ import vaultAbi from '../../lib/vault.abi.json';
 import { RestartAltOutlined } from '@mui/icons-material';
 import { Box, Button, Grid, Skeleton } from '@mui/material';
 import { BigNumber } from 'ethers';
-import React, { useContext, useRef, useState } from 'react';
+import React, { useContext, useRef, useState, useEffect } from 'react';
 import { useAccount, useBalance, usePrepareContractWrite } from 'wagmi';
 import { BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
@@ -14,10 +14,11 @@ import SendTxButton, { SendTxButtonRef } from '../inputs/SendTxButton';
 import Section from '../Section';
 
 function WithdrawFunds() {
-  const [value, setValue] = useState<BigNumber | null>();
-  const [txState, setTxState] = useState<TxState>('Idle');
-
   const resetRef = useRef<SendTxButtonRef>(null);
+
+  const [value, setValue] = useState<BigNumber | null>();
+  const [txState, setTxState] = useState<TxState>();
+  const [isButtonDisabled, setButtonDisabled] = useState(false);
 
   const vault = useContext(VaultContext);
 
@@ -42,6 +43,7 @@ function WithdrawFunds() {
     else setValue(newValue);
     if (txState === 'Success' || txState === 'Error') resetRef.current?.reset();
   }
+
   function onResetButtonClick() {
     resetRef.current?.reset();
   }
@@ -50,8 +52,14 @@ function WithdrawFunds() {
     return txState === 'Success' || txState === 'Error';
   }
 
-  function isValueValid() {
-    return !!value && !!balance && value.gt(BN_ZERO) && value.lte(balance.value);
+  useEffect(() => {
+    if (txState === 'Success') setButtonDisabled(false);
+    else if (!!value && !!balance && value.gt(BN_ZERO) && value.lte(balance.value)) setButtonDisabled(false);
+    else setButtonDisabled(true);
+  }, [txState, value, balance]);
+
+  function onTxStateChange(newState: TxState) {
+    setTxState(newState);
   }
 
   return (
@@ -73,7 +81,7 @@ function WithdrawFunds() {
             ></AssetAmountTextField>
           </Grid>
           <Grid item xs={isWriteSettled() ? 10 : 12}>
-            <SendTxButton txConfig={txConfig} disabled={!isValueValid()} onStateChange={setTxState} ref={resetRef}>
+            <SendTxButton txConfig={txConfig} disabled={isButtonDisabled} onStateChange={onTxStateChange} ref={resetRef}>
               <>Withdraw Funds</>
             </SendTxButton>
           </Grid>

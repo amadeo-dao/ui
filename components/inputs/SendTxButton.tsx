@@ -7,7 +7,7 @@ import { TxState } from '../../lib/TxState';
 export type SendTxButtonProps = {
   txConfig: any;
   disabled?: boolean;
-  onStateChange?: (newState: TxState, resetTx: () => void) => void;
+  onStateChange?: (newState: TxState) => void;
 };
 
 export type SendTxButtonRef = {
@@ -17,7 +17,7 @@ export type SendTxButtonRef = {
 export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<SendTxButtonProps>>(
   (props: React.PropsWithChildren<SendTxButtonProps>, ref: ForwardedRef<SendTxButtonRef>) => {
     const [state, setState] = useState<TxState>('Idle');
-    const [disabled, setDisabled] = useState<boolean>(true);
+    const [disabled, setDisabled] = useState(true);
 
     useImperativeHandle(ref, () => ({
       reset() {
@@ -56,7 +56,7 @@ export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<
     }, [isError, isLoading, isIdle, isSuccess, txReceipt, error]);
 
     useEffect(() => {
-      props.onStateChange?.(state, reset);
+      props.onStateChange?.(state);
     }, [state]);
 
     function onButtonClick() {
