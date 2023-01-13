@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 export type AssetAmountTextFieldProps = {
   symbol: string;
+  label: string;
   disabled?: boolean;
   decimals?: number;
   defaultValue?: BigNumberish;
@@ -47,11 +48,11 @@ function AssetAmountTextField(props: AssetAmountTextFieldProps) {
 
   return (
     <FormControl fullWidth>
-      <InputLabel htmlFor={id}>Assets to send to Vault</InputLabel>
+      <InputLabel htmlFor={id}>{props.label}</InputLabel>
       <OutlinedInput
         id={id}
         size="small"
-        label="Assets to send to Vault"
+        label={props.label}
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
         color={!!parseValue(value) ? 'info' : 'error'}

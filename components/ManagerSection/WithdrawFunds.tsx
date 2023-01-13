@@ -73,6 +73,7 @@ function WithdrawFunds() {
           <Grid item xs={12}>
             <AssetAmountTextField
               symbol={vault.asset.symbol}
+              label={'Assets to receive from Vault'}
               decimals={vault.asset.decimals}
               maxValue={balance?.value}
               onChange={onValueChange}

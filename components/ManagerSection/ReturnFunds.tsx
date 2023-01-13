@@ -99,6 +99,7 @@ function ReturnFunds() {
             <Grid item xs={12}>
               <AssetAmountTextField
                 symbol={vault.asset.symbol}
+                label={'Assets to send to Vault'}
                 decimals={vault.asset.decimals}
                 maxValue={balance?.value}
                 onChange={onValueChange}
