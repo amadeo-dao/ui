@@ -1,6 +1,10 @@
 import { createContext } from 'react';
 import { Vault } from '../vault';
 
+import vaultAbiJson from '../../lib/vault.abi.json';
+
+export const vaultABI = vaultAbiJson;
+
 const defaultVault: Vault = {
   address: '0x0',
   asset: {
