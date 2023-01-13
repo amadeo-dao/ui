@@ -1,6 +1,6 @@
 import { CheckOutlined, ErrorOutlined, SendOutlined } from '@mui/icons-material';
 import { Button, CircularProgress } from '@mui/material';
-import React, { ForwardedRef, PropsWithChildren, useEffect, useImperativeHandle, useState } from 'react';
+import React, { ForwardedRef, PropsWithChildren, ReactElement, useEffect, useImperativeHandle, useState } from 'react';
 import { useContractWrite, useWaitForTransaction } from 'wagmi';
 import { TxState } from '../../lib/TxState';
 
@@ -8,6 +8,7 @@ export type SendTxButtonProps = {
   txConfig: any;
   disabled?: boolean;
   onStateChange?: (newState: TxState) => void;
+  icon?: ReactElement;
 };
 
 export type SendTxButtonRef = {
@@ -17,6 +18,7 @@ export type SendTxButtonRef = {
 export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<SendTxButtonProps>>(
   (props: React.PropsWithChildren<SendTxButtonProps>, ref: ForwardedRef<SendTxButtonRef>) => {
     const [state, setState] = useState<TxState>('Idle');
+    const [icon] = useState<ReactElement | undefined>(props.icon);
     const [disabled, setDisabled] = useState(true);
 
     useImperativeHandle(ref, () => ({
@@ -81,7 +83,7 @@ export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<
           ) : state === 'Error' ? (
             <ErrorOutlined color="error" />
           ) : (
-            <SendOutlined />
+            props.icon ?? <></>
           )
         }
         sx={{

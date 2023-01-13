@@ -12,7 +12,7 @@ import { BigNumber } from 'ethers';
 import AssetAmountTextField from '../inputs/AssetAmountTextField';
 import ApproveButton from '../inputs/ApproveButton';
 import SendTxButton, { SendTxButtonRef } from '../inputs/SendTxButton';
-import { RestartAltOutlined } from '@mui/icons-material';
+import { CallMadeOutlined, RestartAltOutlined, SendOutlined } from '@mui/icons-material';
 import { TxState } from '../../lib/TxState';
 
 function ReturnFunds() {
@@ -115,7 +115,13 @@ function ReturnFunds() {
               ></ApproveButton>
             </Grid>
             <Grid item xs={isWriteSettled() ? 5 : 6}>
-              <SendTxButton txConfig={txConfig} disabled={!isApproved} onStateChange={onTxStateChange} ref={resetRef}>
+              <SendTxButton
+                txConfig={txConfig}
+                disabled={!isApproved}
+                onStateChange={onTxStateChange}
+                ref={resetRef}
+                icon={<CallMadeOutlined />}
+              >
                 <>Return Funds</>
               </SendTxButton>
             </Grid>

@@ -1,4 +1,4 @@
-import { CheckOutlined } from '@mui/icons-material';
+import { AddOutlined, CheckOutlined, RemoveOutlined } from '@mui/icons-material';
 import { Box, Grid, Typography } from '@mui/material';
 import React, { useContext, useEffect, useState } from 'react';
 import { useAccount, useContractRead, usePrepareContractWrite } from 'wagmi';
@@ -62,12 +62,22 @@ function ShareholderManagement() {
             <AddressTextField label="Shareholder Address" defaultValue="" onValueChange={onValueChange}></AddressTextField>
           </Grid>
           <Grid item xs={3}>
-            <SendTxButton txConfig={addTxConfig} disabled={!address || !!isShareholder} onStateChange={onAddTxStateChange}>
+            <SendTxButton
+              txConfig={addTxConfig}
+              disabled={!address || !!isShareholder}
+              onStateChange={onAddTxStateChange}
+              icon={<AddOutlined />}
+            >
               Add Shareholder
             </SendTxButton>
           </Grid>
           <Grid item xs={3}>
-            <SendTxButton txConfig={removeTxConfig} disabled={!address || !isShareholder} onStateChange={onRemoveTxStateChange}>
+            <SendTxButton
+              txConfig={removeTxConfig}
+              disabled={!address || !isShareholder}
+              onStateChange={onRemoveTxStateChange}
+              icon={<RemoveOutlined />}
+            >
               Remove Shareholder
             </SendTxButton>
           </Grid>

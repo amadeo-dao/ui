@@ -1,6 +1,6 @@
 import vaultAbi from '../../lib/vault.abi.json';
 
-import { RestartAltOutlined } from '@mui/icons-material';
+import { CallReceivedOutlined, RestartAltOutlined } from '@mui/icons-material';
 import { Box, Button, Grid, Skeleton } from '@mui/material';
 import { BigNumber } from 'ethers';
 import React, { useContext, useRef, useState, useEffect } from 'react';
@@ -81,7 +81,13 @@ function WithdrawFunds() {
             ></AssetAmountTextField>
           </Grid>
           <Grid item xs={isWriteSettled() ? 10 : 12}>
-            <SendTxButton txConfig={txConfig} disabled={isButtonDisabled} onStateChange={onTxStateChange} ref={resetRef}>
+            <SendTxButton
+              txConfig={txConfig}
+              disabled={isButtonDisabled}
+              onStateChange={onTxStateChange}
+              ref={resetRef}
+              icon={<CallReceivedOutlined />}
+            >
               <>Withdraw Funds</>
             </SendTxButton>
           </Grid>
