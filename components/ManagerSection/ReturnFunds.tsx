@@ -2,22 +2,22 @@ import vaultAbi from '../../lib/vault.abi.json';
 
 import { Box, Button, Grid, Skeleton } from '@mui/material';
 
-import { FormEvent, useContext, useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { erc20ABI, useAccount, useBalance, useContractRead, usePrepareContractWrite } from 'wagmi';
 import { numberFormat } from '../../lib/formats';
-import VaultContext from '../../lib/hooks/useVault';
-import Section from '../Section';
+import { useVault } from '../../lib/hooks/useVault';
+import Section from '../displays/Section';
 import { BN_ZERO } from '../../lib/constants';
 import { BigNumber } from 'ethers';
 import AssetAmountTextField from '../inputs/AssetAmountTextField';
 import ApproveButton from '../inputs/ApproveButton';
 import SendTxButton, { SendTxButtonRef } from '../inputs/SendTxButton';
-import { CallMadeOutlined, RestartAltOutlined, SendOutlined } from '@mui/icons-material';
+import { CallMadeOutlined, RestartAltOutlined } from '@mui/icons-material';
 import { TxState } from '../../lib/TxState';
 
 function ReturnFunds() {
   const resetRef = useRef<SendTxButtonRef>(null);
-  const vault = useContext(VaultContext);
+  const { vault } = useVault();
   const [isApproved, setApproved] = useState<boolean>(false);
   const { address } = useAccount();
   const [value, setValue] = useState<BigNumber | null>(null);

@@ -10,7 +10,7 @@ import { TxState } from '../../lib/TxState';
 import ApproveButton from '../inputs/ApproveButton';
 import AssetAmountTextField from '../inputs/AssetAmountTextField';
 import SendTxButton, { SendTxButtonRef } from '../inputs/SendTxButton';
-import Section from '../Section';
+import Section from '../displays/Section';
 
 function BuyShares() {
   const resetRef = useRef<SendTxButtonRef>(null);

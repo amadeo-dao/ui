@@ -7,11 +7,11 @@ import React, { useContext, useRef, useState, useEffect } from 'react';
 import { useAccount, useBalance, usePrepareContractWrite } from 'wagmi';
 import { BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
-import VaultContext from '../../lib/hooks/useVault';
 import { TxState } from '../../lib/TxState';
 import AssetAmountTextField from '../inputs/AssetAmountTextField';
 import SendTxButton, { SendTxButtonRef } from '../inputs/SendTxButton';
-import Section from '../Section';
+import Section from '../displays/Section';
+import { useVault } from '../../lib/hooks/useVault';
 
 function WithdrawFunds() {
   const resetRef = useRef<SendTxButtonRef>(null);
@@ -20,7 +20,7 @@ function WithdrawFunds() {
   const [txState, setTxState] = useState<TxState>();
   const [isButtonDisabled, setButtonDisabled] = useState(false);
 
-  const vault = useContext(VaultContext);
+  const { vault } = useVault();
 
   const { address: owner } = useAccount();
 

@@ -19,7 +19,6 @@ export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<
   (props: React.PropsWithChildren<SendTxButtonProps>, ref: ForwardedRef<SendTxButtonRef>) => {
     const [state, setState] = useState<TxState>('Idle');
     const [icon] = useState<ReactElement | undefined>(props.icon);
-    const [disabled, setDisabled] = useState(true);
 
     useImperativeHandle(ref, () => ({
       reset() {
@@ -35,10 +34,6 @@ export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<
         setState('Error');
       }
     });
-
-    useEffect(() => {
-      setDisabled(!!props.disabled);
-    }, [props.disabled]);
 
     useEffect(() => {
       if (isError) {
@@ -59,17 +54,17 @@ export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<
 
     useEffect(() => {
       props.onStateChange?.(state);
-    }, [state]);
+    }, [state, props.onStateChange]);
 
     function onButtonClick() {
-      if (disabled) return;
+      if (props.disabled) return;
       write?.();
     }
 
     return (
       <Button
         variant="contained"
-        disabled={disabled}
+        disabled={props.disabled}
         color={state === 'Success' ? 'success' : 'primary'}
         fullWidth
         onClick={() => onButtonClick()}
@@ -83,7 +78,7 @@ export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<
           ) : state === 'Error' ? (
             <ErrorOutlined color="error" />
           ) : (
-            props.icon ?? <></>
+            icon ?? <></>
           )
         }
         sx={{
@@ -95,5 +90,7 @@ export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<
     );
   }
 );
+
+SendTxButton.displayName = 'SendTxButton';
 
 export default SendTxButton;

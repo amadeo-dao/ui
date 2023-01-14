@@ -1,14 +1,14 @@
 import { AddOutlined, CheckOutlined, RemoveOutlined } from '@mui/icons-material';
 import { Box, Grid, Typography } from '@mui/material';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAccount, useContractRead, usePrepareContractWrite } from 'wagmi';
-import VaultContext, { vaultABI } from '../../lib/hooks/useVault';
+import { useVault, vaultABI } from '../../lib/hooks/useVault';
 import AddressTextField from '../inputs/AddressTextField';
 import SendTxButton from '../inputs/SendTxButton';
-import Section from '../Section';
+import Section from '../displays/Section';
 
 function ShareholderManagement() {
-  const vault = useContext(VaultContext);
+  const { vault } = useVault();
   const [address, setAddress] = useState<string | null>(null);
 
   const { address: manager } = useAccount();
@@ -17,28 +17,26 @@ function ShareholderManagement() {
     address: vault.address,
     abi: vaultABI,
     functionName: 'isShareholder',
-    args: [address ?? '0x0'],
-    enabled: false
+    args: [address],
+    enabled: !!address
   });
-
   const { config: addTxConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: vaultABI,
     functionName: 'whitelistShareholder',
-    args: [address ?? '0x0'],
+    args: [address ?? '0x001111'],
     enabled: !!address
   });
-
   const { config: removeTxConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: vaultABI,
     functionName: 'revokeShareholder',
-    args: [address ?? '0x0'],
+    args: [address ?? '0x0ddd'],
     enabled: !!address
   });
 
   useEffect(() => {
-    if (address) refetchIsShareholder();
+    refetchIsShareholder();
   }, [address]);
 
   function onValueChange(newValue: string | null) {
@@ -54,6 +52,7 @@ function ShareholderManagement() {
     refetchIsShareholder();
   }
 
+  console.log(isShareholder);
   return (
     <Section heading="Shareholder Management">
       <Box mt="1em" textAlign={'left'}>
@@ -74,7 +73,7 @@ function ShareholderManagement() {
           <Grid item xs={3}>
             <SendTxButton
               txConfig={removeTxConfig}
-              disabled={!address || !isShareholder}
+              disabled={!isShareholder}
               onStateChange={onRemoveTxStateChange}
               icon={<RemoveOutlined />}
             >

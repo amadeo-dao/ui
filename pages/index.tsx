@@ -54,7 +54,7 @@ export default function Home(props: any) {
   );
 }
 
-export async function getStaticProps() {
+export async function getServerSideProps() {
   return {
     props: {
       vault: await loadVault()

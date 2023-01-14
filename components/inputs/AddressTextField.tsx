@@ -1,4 +1,4 @@
-import { FormControl, InputAdornment, InputLabel, OutlinedInput } from '@mui/material';
+import { FormControl, InputLabel, OutlinedInput } from '@mui/material';
 import { getAddress } from 'ethers/lib/utils.js';
 import React, { useMemo, useState } from 'react';
 
