@@ -1,11 +1,11 @@
 import { RestartAltOutlined, SwapHorizOutlined } from '@mui/icons-material';
-import { Box, Button, Grid, Skeleton, Typography } from '@mui/material';
+import { Box, Button, Grid, Typography } from '@mui/material';
 import { BigNumber } from 'ethers';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { erc20ABI, useAccount, useBalance, useContractRead, usePrepareContractWrite } from 'wagmi';
 import { BN_1E, BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
-import VaultContext, { vaultABI } from '../../lib/hooks/useVault';
+import { useVault, vaultABI } from '../../lib/hooks/useVault';
 import { TxState } from '../../lib/TxState';
 import ApproveButton from '../inputs/ApproveButton';
 import AssetAmountTextField from '../inputs/AssetAmountTextField';
@@ -23,7 +23,7 @@ function BuyShares() {
 
   const { address: account } = useAccount();
 
-  const vault = useContext(VaultContext);
+  const { vault, refetch: refetchVault } = useVault();
 
   const { data: vaultBalance } = useBalance({
     address: vault.address,
@@ -87,7 +87,10 @@ function BuyShares() {
 
   function onTxStateChange(newState: TxState) {
     setTxState(newState);
-    if (isWriteSettled()) refetchAllowance();
+    if (isWriteSettled()) {
+      refetchVault();
+      refetchAllowance();
+    }
   }
 
   function onApprovalChange(approvalSuccess: boolean) {
@@ -100,14 +103,12 @@ function BuyShares() {
 
   function convertAssets(assets?: BigNumber | null): BigNumber {
     if (!assets || assets.lte('0')) return BN_ZERO;
-    const sharePrice = BigNumber.from(vault.sharePrice);
-    return assets.mul(BN_1E(vault.asset.decimals)).div(sharePrice);
+    return assets.mul(BN_1E(vault.asset.decimals)).div(vault.sharePrice);
   }
 
   function convertShares(shares?: BigNumber | null): BigNumber {
     if (!shares || shares.lte('0')) return BN_ZERO;
-    const sharePrice = BigNumber.from(vault.sharePrice);
-    return shares.mul(sharePrice).div(BN_1E(vault.asset.decimals));
+    return shares.mul(vault.sharePrice).div(BN_1E(vault.asset.decimals));
   }
 
   function maxBurnable(): BigNumber {

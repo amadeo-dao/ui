@@ -1,11 +1,11 @@
-import { AccountBalanceOutlined, CallMadeOutlined, RestartAltOutlined, SwapHorizOutlined } from '@mui/icons-material';
+import { RestartAltOutlined, SwapHorizOutlined } from '@mui/icons-material';
 import { Box, Button, Grid, Skeleton, Typography } from '@mui/material';
 import { BigNumber } from 'ethers';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { erc20ABI, useAccount, useBalance, useContractRead, usePrepareContractWrite } from 'wagmi';
 import { BN_1E, BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
-import VaultContext, { vaultABI } from '../../lib/hooks/useVault';
+import { useVault, vaultABI } from '../../lib/hooks/useVault';
 import { TxState } from '../../lib/TxState';
 import ApproveButton from '../inputs/ApproveButton';
 import AssetAmountTextField from '../inputs/AssetAmountTextField';
@@ -23,7 +23,7 @@ function BuyShares() {
 
   const { address: account } = useAccount();
 
-  const vault = useContext(VaultContext);
+  const { vault, refetch: refetchVault } = useVault();
 
   const { data: balance } = useBalance({
     address: account,
@@ -31,7 +31,7 @@ function BuyShares() {
     watch: true
   });
 
-  const { data: allowance } = useContractRead({
+  const { data: allowance, refetch: refetchAllowance } = useContractRead({
     address: vault.asset.address,
     abi: erc20ABI,
     functionName: 'allowance',
@@ -81,6 +81,10 @@ function BuyShares() {
 
   function onTxStateChange(newState: TxState) {
     setTxState(newState);
+    if (newState === 'Success') {
+      refetchVault();
+      refetchAllowance();
+    }
   }
 
   function onApprovalChange(approvalSuccess: boolean) {
