@@ -1,4 +1,4 @@
-import { AccountBalanceOutlined, CallMadeOutlined, RestartAltOutlined, SwapHorizOutlined } from '@mui/icons-material';
+import { RestartAltOutlined, SwapHorizOutlined } from '@mui/icons-material';
 import { Box, Button, Grid, Skeleton, Typography } from '@mui/material';
 import { BigNumber } from 'ethers';
 import React, { useContext, useEffect, useRef, useState } from 'react';
@@ -19,20 +19,26 @@ function BuyShares() {
   const [txState, setTxState] = useState<TxState>('Idle');
   const [isApproved, setApproved] = useState<boolean>(false);
 
-  const [isDepositMode, setDepositMode] = useState<boolean>(true);
+  const [isWithdrawMode, setWithdrawMode] = useState<boolean>(true);
 
   const { address: account } = useAccount();
 
   const vault = useContext(VaultContext);
 
-  const { data: balance } = useBalance({
-    address: account,
+  const { data: vaultBalance } = useBalance({
+    address: vault.address,
     token: vault.asset.address,
     watch: true
   });
 
-  const { data: allowance } = useContractRead({
-    address: vault.asset.address,
+  const { data: accountShares } = useBalance({
+    address: account,
+    token: vault.address,
+    watch: true
+  });
+
+  const { data: allowance, refetch: refetchAllowance } = useContractRead({
+    address: vault.address,
     abi: erc20ABI,
     functionName: 'allowance',
     args: [account ?? '0x0', vault.address],
@@ -40,23 +46,23 @@ function BuyShares() {
   });
 
   const { config: approveConfig } = usePrepareContractWrite({
-    address: vault.asset.address,
+    address: vault.address,
     abi: erc20ABI,
     functionName: 'approve',
-    args: [vault.address, assetAmount]
+    args: [vault.address, sharesAmount]
   });
 
   const { config: txConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: vaultABI,
-    functionName: 'deposit',
-    args: [assetAmount ?? BN_ZERO, account ?? '0x0'],
-    enabled: !!account && isApproved && !!assetAmount && assetAmount.gt(BN_ZERO)
+    functionName: 'redeem',
+    args: [sharesAmount ?? BN_ZERO, account ?? '0x0', account ?? '0x0'],
+    enabled: !!account && isApproved && !!sharesAmount && sharesAmount.gt(BN_ZERO)
   });
 
   useEffect(() => {
     if (!allowance || !assetAmount || assetAmount.eq(BN_ZERO)) setApproved(false);
-    else setApproved(allowance.gte(assetAmount));
+    else setApproved(allowance.gte(sharesAmount));
   }, [allowance]);
 
   function onAssetAmountChange(newValue: BigNumber | null) {
@@ -71,16 +77,17 @@ function BuyShares() {
     if (isWriteSettled()) resetRef.current?.reset();
   }
 
-  function onSwitchToMintButtonClick() {
-    setDepositMode(false);
+  function onSwitchToBurnButtonClick() {
+    setWithdrawMode(false);
   }
 
-  function onSwitchToDepositButtonClick() {
-    setDepositMode(true);
+  function onSwitchToWithdrawButtonClick() {
+    setWithdrawMode(true);
   }
 
   function onTxStateChange(newState: TxState) {
     setTxState(newState);
+    if (isWriteSettled()) refetchAllowance();
   }
 
   function onApprovalChange(approvalSuccess: boolean) {
@@ -103,36 +110,43 @@ function BuyShares() {
     return shares.mul(sharePrice).div(BN_1E(vault.asset.decimals));
   }
 
+  function maxBurnable(): BigNumber {
+    if (!accountShares || !vaultBalance) return BN_ZERO;
+    const vaultBalanceShares = convertShares(vaultBalance.value);
+    return vaultBalanceShares.lte(accountShares.value) ? vaultBalanceShares : accountShares.value;
+  }
+
   function isWriteSettled() {
     return txState === 'Success' || txState === 'Error';
   }
 
-  function isAssetAmountValid(): boolean {
-    return !!assetAmount && !!balance && balance.value.gt('0') && assetAmount.lte(balance.value);
+  function isSharesAmountValid(): boolean {
+    if (!accountShares || !sharesAmount || !vaultBalance) return false;
+    if (sharesAmount.lte('0')) return false;
+    if (vaultBalance.value.lte('0')) return false;
+    return sharesAmount.lte(maxBurnable());
   }
-
   return (
-    <Section heading="Buy Shares" headingAlign="center">
+    <Section heading="Sell Shares" headingAlign="center">
       <Box textAlign="left">
-        Assets in Wallet:&nbsp;
-        {balance ? numberFormat(balance.value, balance.symbol) : <Skeleton variant="rectangular" width={'8em'} height={'1em'} />}
+        <>Max. Shares:&nbsp;{numberFormat(maxBurnable(), vault.symbol)}</>
       </Box>
       <Box mt="1em" textAlign={'left'}>
         <Grid container spacing={1}>
-          {isDepositMode && (
+          {isWithdrawMode && (
             <>
               <Grid item xs={6}>
                 <AssetAmountTextField
-                  label="You pay"
+                  label="You receive"
                   symbol={vault.asset.symbol}
                   decimals={vault.asset.decimals}
                   defaultValue={assetAmount}
-                  maxValue={balance?.value}
+                  maxValue={convertShares(maxBurnable())}
                   onChange={onAssetAmountChange}
                 ></AssetAmountTextField>
               </Grid>
               <Grid item xs={2} textAlign={'center'}>
-                <Button variant="text" disableRipple onClick={onSwitchToMintButtonClick}>
+                <Button variant="text" disableRipple onClick={onSwitchToBurnButtonClick}>
                   <SwapHorizOutlined></SwapHorizOutlined>
                 </Button>
               </Grid>
@@ -141,23 +155,23 @@ function BuyShares() {
               </Grid>
             </>
           )}
-          {!isDepositMode && (
+          {!isWithdrawMode && (
             <>
               <Grid item xs={4} marginTop={'0.5em'} textAlign={'center'}>
                 <Typography variant="body1">{numberFormat(assetAmount, vault.asset.symbol)}</Typography>
               </Grid>
               <Grid item xs={2} textAlign={'center'}>
-                <Button variant="text" disableRipple onClick={onSwitchToDepositButtonClick}>
+                <Button variant="text" disableRipple onClick={onSwitchToWithdrawButtonClick}>
                   <SwapHorizOutlined></SwapHorizOutlined>
                 </Button>
               </Grid>
               <Grid item xs={6}>
                 <AssetAmountTextField
-                  label="You buy"
+                  label="You sell"
                   symbol={vault.symbol}
                   decimals={vault.decimals}
                   defaultValue={sharesAmount}
-                  maxValue={convertAssets(balance?.value)}
+                  maxValue={maxBurnable()}
                   onChange={onSharesAmountChange}
                 ></AssetAmountTextField>
               </Grid>
@@ -167,19 +181,19 @@ function BuyShares() {
             <ApproveButton
               txConfig={approveConfig}
               allowance={allowance}
-              amountNeeded={assetAmount}
+              amountNeeded={sharesAmount}
               onChange={(success) => onApprovalChange(success)}
-              disabled={!isWriteSettled() && !isAssetAmountValid()}
+              disabled={!isWriteSettled() && !isSharesAmountValid()}
             ></ApproveButton>
           </Grid>
           <Grid item xs={isWriteSettled() ? 5 : 6}>
             <SendTxButton
               txConfig={txConfig}
-              disabled={!isAssetAmountValid() || !isApproved}
+              disabled={!isApproved || !isSharesAmountValid()}
               onStateChange={onTxStateChange}
               ref={resetRef}
             >
-              <>Buy Shares</>
+              <>Sell Shares</>
             </SendTxButton>
           </Grid>
           <Grid item xs={isWriteSettled() ? 2 : 0} display={isWriteSettled() ? 'inherit' : 'none'}>

@@ -16,6 +16,7 @@ export type ApproveButtonProps = {
   amountNeeded?: BigNumber | null;
   allowance?: BigNumber;
   txConfig: any;
+  disabled?: boolean;
   onChange?: (approvalState: boolean) => void;
 };
 
@@ -104,13 +105,13 @@ function ApproveButton(props: ApproveButtonProps) {
       </Button>
     );
 
-  if (state === State.Enabled)
+  if (state === State.Enabled) {
     return (
-      <Button variant="contained" color={'primary'} fullWidth onClick={onButtonClick}>
+      <Button variant="contained" color={'primary'} disabled={props.disabled} fullWidth onClick={onButtonClick}>
         Approve
       </Button>
     );
-
+  }
   return <></>;
 }
 

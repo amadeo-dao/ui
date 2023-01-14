@@ -3,6 +3,7 @@ import React, { useContext } from 'react';
 import { useAccount, useContractRead } from 'wagmi';
 import VaultContext, { vaultABI } from '../lib/hooks/useVault';
 import BuyShares from './ShareholderSection/BuyShares';
+import SellShares from './ShareholderSection/SellShares';
 
 function ShareholderSection() {
   const vault = useContext(VaultContext);
@@ -27,7 +28,9 @@ function ShareholderSection() {
           <Grid item xs={6}>
             <BuyShares></BuyShares>
           </Grid>
-          <Grid item xs={6}></Grid>
+          <Grid item xs={6}>
+            <SellShares></SellShares>
+          </Grid>
         </Grid>
       </Grid>
     </Grid>
