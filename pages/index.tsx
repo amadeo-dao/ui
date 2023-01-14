@@ -13,6 +13,7 @@ import ManagerSection from '../components/ManagerSection';
 
 import _ from 'lodash';
 import VaultContext from '../lib/hooks/useVault';
+import ShareholderSection from '../components/ShareholderSection';
 
 export default function Home(props: any) {
   const anvil = _.extend({}, mainnet, {
@@ -27,8 +28,7 @@ export default function Home(props: any) {
   const client = createClient(
     getDefaultClient({
       appName: 'Coinflakes Investment Vault',
-      chains:
-        process.env.NODE_ENV === 'development' ? [anvil] : [mainnet, goerli]
+      chains: process.env.NODE_ENV === 'development' ? [anvil] : [mainnet, goerli]
     })
   );
 
@@ -39,16 +39,14 @@ export default function Home(props: any) {
           <VaultContext.Provider value={props.vault}>
             <Head>
               <title>Coinflakes Investment Vault</title>
-              <meta
-                name="viewport"
-                content="initial-scale=1, width=device-width"
-              />
+              <meta name="viewport" content="initial-scale=1, width=device-width" />
               <link rel="icon" href="/favicon.ico" />
             </Head>
             <CssBaseline />
             <MainAppBar></MainAppBar>
             <VaultSummary></VaultSummary>
             <ManagerSection></ManagerSection>
+            <ShareholderSection></ShareholderSection>
           </VaultContext.Provider>
         </ConnectKitProvider>
       </WagmiConfig>
