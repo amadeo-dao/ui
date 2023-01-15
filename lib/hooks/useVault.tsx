@@ -1,10 +1,10 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { Vault, VaultDefaults } from '../vault';
 
 import vaultAbiJson from '../../lib/vault.abi.json';
 import { useContractRead } from 'wagmi';
 import { BigNumber } from 'ethers';
-import { BN_1E, BN_ONE, BN_ZERO } from '../constants';
+import { BN_1E } from '../constants';
 
 export const vaultABI = vaultAbiJson;
 
@@ -62,7 +62,7 @@ export function useVault(): UseVaultReturnType {
   const { refetch: refetchSharePrice } = useContractRead({
     address: vaultDefaults.address,
     abi: vaultABI,
-    functionName: 'convertToShares',
+    functionName: 'convertToAssets',
     args: [BN_1E(vaultDefaults.decimals)],
     enabled: false,
     onSuccess(data: BigNumber) {

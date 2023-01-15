@@ -55,9 +55,7 @@ export default function Home(props: any) {
 }
 
 export async function getServerSideProps() {
-  return {
-    props: {
-      vault: await loadVault()
-    }
-  };
+  const vault = await loadVault();
+  console.log(vault);
+  return { props: { vault } };
 }

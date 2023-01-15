@@ -30,6 +30,7 @@ export type VaultDefaults = ERC20 & {
 let vault: VaultDefaults | undefined;
 
 export async function loadVault(): Promise<VaultDefaults> {
+  console.log('Updating vault');
   const address = process.env.VAULT;
   if (!address) throw new Error('VAULT environment variable not set');
   if (!address.startsWith('0x')) throw new Error('VAULT environment variable is not an EVM address');
@@ -39,9 +40,7 @@ export async function loadVault(): Promise<VaultDefaults> {
     const sharePrice = await contract.convertToAssets(BigNumber.from(10).pow('' + decimals ?? 18));
     const assetAddress = await contract.asset();
     const asset = await loadERC20(assetAddress);
-    const assetsUnderManagement = BigNumber.from(totalSupply)
-      .mul(sharePrice)
-      .div(BigNumber.from(10).pow(decimals + ''));
+    const assetsUnderManagement = await contract.totalAssets();
     vault = {
       address: address as EvmAddress,
       name,

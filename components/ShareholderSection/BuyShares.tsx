@@ -55,6 +55,7 @@ function BuyShares() {
   });
 
   useEffect(() => {
+    console.log(allowance?.toString());
     if (!allowance || !assetAmount || assetAmount.eq(BN_ZERO)) setApproved(false);
     else setApproved(allowance.gte(assetAmount));
   }, [allowance]);
@@ -89,6 +90,7 @@ function BuyShares() {
 
   function onApprovalChange(approvalSuccess: boolean) {
     setApproved(approvalSuccess);
+    if (approvalSuccess) refetchAllowance();
   }
 
   function onResetButtonClick() {

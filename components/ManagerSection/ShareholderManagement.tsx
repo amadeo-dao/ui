@@ -52,7 +52,6 @@ function ShareholderManagement() {
     refetchIsShareholder();
   }
 
-  console.log(isShareholder);
   return (
     <Section heading="Shareholder Management">
       <Box mt="1em" textAlign={'left'}>

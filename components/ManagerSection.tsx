@@ -24,10 +24,10 @@ export default function ManagerSection() {
       <Grid item xs={8}>
         <Grid container spacing={2}>
           <Grid item xs={6}>
-            {/* <WithdrawFunds></WithdrawFunds> */}
+            <WithdrawFunds></WithdrawFunds>
           </Grid>
           <Grid item xs={6}>
-            {/* <ReturnFunds></ReturnFunds> */}
+            <ReturnFunds></ReturnFunds>
           </Grid>
         </Grid>
         <Grid item xs={12} mt={'4em'}>

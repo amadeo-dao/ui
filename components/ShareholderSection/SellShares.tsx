@@ -45,6 +45,22 @@ function BuyShares() {
     enabled: !!account
   });
 
+  const { data: maxRedeemable, refetch: refetchMaxRedeem } = useContractRead({
+    address: vault.address,
+    abi: vaultABI,
+    functionName: 'maxRedeem',
+    args: [account],
+    enabled: !!account
+  });
+
+  const { data: maxWithdrawable, refetch: refetchMaxWithdraw } = useContractRead({
+    address: vault.address,
+    abi: vaultABI,
+    functionName: 'maxWithdraw',
+    args: [account],
+    enabled: !!account
+  });
+
   const { config: approveConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: erc20ABI,
@@ -52,7 +68,7 @@ function BuyShares() {
     args: [vault.address, sharesAmount]
   });
 
-  const { config: txConfig } = usePrepareContractWrite({
+  const { config: redeemTxConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: vaultABI,
     functionName: 'redeem',
@@ -60,8 +76,16 @@ function BuyShares() {
     enabled: !!account && isApproved && !!sharesAmount && sharesAmount.gt(BN_ZERO)
   });
 
+  const { config: withdrawTxConfig } = usePrepareContractWrite({
+    address: vault.address,
+    abi: vaultABI,
+    functionName: 'withdraw',
+    args: [assetAmount ?? BN_ZERO, account ?? '0x0', account ?? '0x0'],
+    enabled: !!account && isApproved && !!assetAmount && assetAmount.gt(BN_ZERO)
+  });
+
   useEffect(() => {
-    if (!allowance || !assetAmount || assetAmount.eq(BN_ZERO)) setApproved(false);
+    if (!allowance || !sharesAmount || assetAmount.eq(BN_ZERO)) setApproved(false);
     else setApproved(allowance.gte(sharesAmount));
   }, [allowance]);
 
@@ -95,6 +119,7 @@ function BuyShares() {
 
   function onApprovalChange(approvalSuccess: boolean) {
     setApproved(approvalSuccess);
+    if (approvalSuccess) refetchAllowance();
   }
 
   function onResetButtonClick() {
@@ -108,13 +133,7 @@ function BuyShares() {
 
   function convertShares(shares?: BigNumber | null): BigNumber {
     if (!shares || shares.lte('0')) return BN_ZERO;
-    return shares.mul(vault.sharePrice).div(BN_1E(vault.asset.decimals));
-  }
-
-  function maxBurnable(): BigNumber {
-    if (!accountShares || !vaultBalance) return BN_ZERO;
-    const vaultBalanceShares = convertShares(vaultBalance.value);
-    return vaultBalanceShares.lte(accountShares.value) ? vaultBalanceShares : accountShares.value;
+    return shares.mul(vault.sharePrice).div(BN_1E(vault.decimals));
   }
 
   function isWriteSettled() {
@@ -125,12 +144,21 @@ function BuyShares() {
     if (!accountShares || !sharesAmount || !vaultBalance) return false;
     if (sharesAmount.lte('0')) return false;
     if (vaultBalance.value.lte('0')) return false;
-    return sharesAmount.lte(maxBurnable());
+    return sharesAmount.lte((maxRedeemable as BigNumber) ?? BN_ZERO);
   }
+
+  function isAssetAmountValid(): boolean {
+    if (!accountShares || !assetAmount || !vaultBalance) return false;
+    if (assetAmount.lte('0')) return false;
+    if (vaultBalance.value.lte('0')) return false;
+    return assetAmount.lte((maxWithdrawable as BigNumber) ?? BN_ZERO);
+  }
+
   return (
     <Section heading="Sell Shares" headingAlign="center">
       <Box textAlign="left">
-        <>Max. Shares:&nbsp;{numberFormat(maxBurnable(), vault.symbol)}</>
+        {isWithdrawMode && <>Maximum:&nbsp;{numberFormat((maxWithdrawable as BigNumber) ?? BN_ZERO, vault.asset.symbol)}</>}
+        {!isWithdrawMode && <>Maximum:&nbsp;{numberFormat((maxRedeemable as BigNumber) ?? BN_ZERO, vault.symbol)}</>}
       </Box>
       <Box mt="1em" textAlign={'left'}>
         <Grid container spacing={1}>
@@ -142,7 +170,7 @@ function BuyShares() {
                   symbol={vault.asset.symbol}
                   decimals={vault.asset.decimals}
                   defaultValue={assetAmount}
-                  maxValue={convertShares(maxBurnable())}
+                  maxValue={(maxWithdrawable as BigNumber) ?? BN_ZERO}
                   onChange={onAssetAmountChange}
                 ></AssetAmountTextField>
               </Grid>
@@ -172,7 +200,7 @@ function BuyShares() {
                   symbol={vault.symbol}
                   decimals={vault.decimals}
                   defaultValue={sharesAmount}
-                  maxValue={maxBurnable()}
+                  maxValue={(maxRedeemable as BigNumber) ?? BN_ZERO}
                   onChange={onSharesAmountChange}
                 ></AssetAmountTextField>
               </Grid>
@@ -188,14 +216,25 @@ function BuyShares() {
             ></ApproveButton>
           </Grid>
           <Grid item xs={isWriteSettled() ? 5 : 6}>
-            <SendTxButton
-              txConfig={txConfig}
-              disabled={!isApproved || !isSharesAmountValid()}
-              onStateChange={onTxStateChange}
-              ref={resetRef}
-            >
-              <>Sell Shares</>
-            </SendTxButton>
+            {isWithdrawMode ? (
+              <SendTxButton
+                txConfig={withdrawTxConfig}
+                disabled={!isApproved || !isAssetAmountValid()}
+                onStateChange={onTxStateChange}
+                ref={resetRef}
+              >
+                <>Sell Shares</>
+              </SendTxButton>
+            ) : (
+              <SendTxButton
+                txConfig={redeemTxConfig}
+                disabled={!isApproved || !isSharesAmountValid()}
+                onStateChange={onTxStateChange}
+                ref={resetRef}
+              >
+                <>Sell Shares</>
+              </SendTxButton>
+            )}
           </Grid>
           <Grid item xs={isWriteSettled() ? 2 : 0} display={isWriteSettled() ? 'inherit' : 'none'}>
             <Button aria-label="Reset Form" variant="contained" color={'error'} onClick={() => onResetButtonClick()}>
