@@ -21,7 +21,7 @@ function ShareholderSection() {
   if (!isShareholder) return <></>;
 
   return (
-    <Grid container mt={'4em'}>
+    <Grid container mt={'4em'} mb={'12em'}>
       <Grid item xs={2}></Grid>
       <Grid item xs={8}>
         <Grid container spacing={2}>

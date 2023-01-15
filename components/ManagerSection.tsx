@@ -3,6 +3,7 @@ import { useAccount, useContractRead } from 'wagmi';
 import { useVault, vaultABI } from '../lib/hooks/useVault';
 import ReturnFunds from './ManagerSection/ReturnFunds';
 import ShareholderManagement from './ManagerSection/ShareholderManagement';
+import SharePriceManagement from './ManagerSection/SharePriceManagement';
 import WithdrawFunds from './ManagerSection/WithdrawFunds';
 
 export default function ManagerSection() {
@@ -19,7 +20,7 @@ export default function ManagerSection() {
 
   if (!manager || !account || account !== manager) return <></>;
   return (
-    <Grid container mt={'4em'}>
+    <Grid container mt={'4em'} mb={'18em'}>
       <Grid item xs={2}></Grid>
       <Grid item xs={8}>
         <Grid container spacing={2}>
@@ -33,8 +34,10 @@ export default function ManagerSection() {
         <Grid item xs={12} mt={'4em'}>
           <ShareholderManagement></ShareholderManagement>
         </Grid>
+        <Grid item xs={12} mt={'4em'}>
+          <SharePriceManagement></SharePriceManagement>
+        </Grid>
       </Grid>
-      <Grid item xs={2}></Grid>
     </Grid>
   );
 }

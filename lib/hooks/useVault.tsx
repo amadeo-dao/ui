@@ -22,7 +22,8 @@ const defaultVault: VaultDefaults = {
   decimals: 18,
   totalSupply: '0',
   sharePrice: '0',
-  assetsUnderManagement: '0'
+  assetsUnderManagement: '0',
+  assetsInUse: '0'
 };
 
 export type UseVaultReturnType = {
@@ -37,6 +38,7 @@ export function useVault(): UseVaultReturnType {
   const vaultDefaults = useContext(VaultDefaultsContext);
   const [totalSupply, setTotalSupply] = useState(BigNumber.from(vaultDefaults.totalSupply));
   const [aum, setAUM] = useState(BigNumber.from(vaultDefaults.assetsUnderManagement));
+  const [aiu, setAIU] = useState(BigNumber.from(vaultDefaults.assetsInUse));
   const [sharePrice, setSharePrice] = useState(BigNumber.from(vaultDefaults.sharePrice));
 
   const { refetch: refetchTotalSupply } = useContractRead({
@@ -56,6 +58,16 @@ export function useVault(): UseVaultReturnType {
     enabled: false,
     onSuccess(data: BigNumber) {
       setAUM(data);
+    }
+  });
+
+  const { refetch: refetchAIM } = useContractRead({
+    address: vaultDefaults.address,
+    abi: vaultABI,
+    functionName: 'assetsInUse',
+    enabled: false,
+    onSuccess(data: BigNumber) {
+      setAIU(data);
     }
   });
 
@@ -90,6 +102,7 @@ export function useVault(): UseVaultReturnType {
       totalSupply: BigNumber.from(vaultDefaults.asset.totalSupply)
     },
     assetsUnderManagement: aum,
+    assetsInUse: aiu,
     sharePrice: sharePrice
   };
   return { vault, refetch, refetchAUM, refetchSharePrice, refetchTotalSupply };

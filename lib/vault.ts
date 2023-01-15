@@ -19,12 +19,14 @@ export type Vault = {
   };
   sharePrice: BigNumber;
   assetsUnderManagement: BigNumber;
+  assetsInUse: BigNumber;
 };
 
 export type VaultDefaults = ERC20 & {
   asset: ERC20;
   sharePrice: string;
   assetsUnderManagement: string;
+  assetsInUse: string;
 };
 
 let vault: VaultDefaults | undefined;
@@ -41,6 +43,7 @@ export async function loadVault(): Promise<VaultDefaults> {
     const assetAddress = await contract.asset();
     const asset = await loadERC20(assetAddress);
     const assetsUnderManagement = await contract.totalAssets();
+    const assetsInUse = await contract.assetsInUse();
     vault = {
       address: address as EvmAddress,
       name,
@@ -49,7 +52,8 @@ export async function loadVault(): Promise<VaultDefaults> {
       totalSupply: totalSupply.toString(),
       asset,
       sharePrice: sharePrice.toString(),
-      assetsUnderManagement: assetsUnderManagement.toString()
+      assetsUnderManagement: assetsUnderManagement.toString(),
+      assetsInUse: assetsInUse.toString()
     };
   }
   return vault;
