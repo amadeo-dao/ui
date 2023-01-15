@@ -56,6 +56,5 @@ export default function Home(props: any) {
 
 export async function getServerSideProps(context: any) {
   const vault = await loadVault(context.params.vault);
-  console.log(vault);
   return { props: { vault } };
 }
