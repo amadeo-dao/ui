@@ -6,14 +6,14 @@ import { mainnet, goerli } from 'wagmi/chains';
 
 import { ConnectKitProvider, getDefaultClient } from 'connectkit';
 
-import { loadVault } from '../lib/vault';
-import VaultSummary from '../components/VaultSummary';
-import MainAppBar from '../components/MainAppBar';
-import ManagerSection from '../components/ManagerSection';
+import { loadVault } from '../../lib/vault';
+import VaultSummary from '../../components/VaultSummary';
+import MainAppBar from '../../components/MainAppBar';
+import ManagerSection from '../../components/ManagerSection';
 
 import _ from 'lodash';
-import VaultContext from '../lib/hooks/useVault';
-import ShareholderSection from '../components/ShareholderSection';
+import VaultContext from '../../lib/hooks/useVault';
+import ShareholderSection from '../../components/ShareholderSection';
 
 export default function Home(props: any) {
   const anvil = _.extend({}, mainnet, {
@@ -38,7 +38,7 @@ export default function Home(props: any) {
         <ConnectKitProvider theme="auto" mode="light">
           <VaultContext.Provider value={props.vault}>
             <Head>
-              <title>Coinflakes Investment Vault</title>
+              <title>{props.vault.name}</title>
               <meta name="viewport" content="initial-scale=1, width=device-width" />
               <link rel="icon" href="/favicon.ico" />
             </Head>
@@ -54,8 +54,8 @@ export default function Home(props: any) {
   );
 }
 
-export async function getServerSideProps() {
-  const vault = await loadVault();
+export async function getServerSideProps(context: any) {
+  const vault = await loadVault(context.params.vault);
   console.log(vault);
   return { props: { vault } };
 }
