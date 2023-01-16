@@ -20,6 +20,12 @@ CRV_3POOL=0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7
 USDT=0xdAC17F958D2ee523a2206206994597C13D831ec7
 DAI=0x6B175474E89094C44Da98b954EedeAC495271d0F
 
+
+# Echo test addresses
+echo "Manager account:     $MANAGER" 
+echo "Shareholder account: $OWNER"
+echo ""
+
 # Clone the vault and extract vault address from logs
 echo "Deploying vault contract."
 VAULT=`cast send --rpc-url http://localhost:8545 --private-key $MANAGER_PK $FACTORY --json \

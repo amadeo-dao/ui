@@ -47,6 +47,7 @@ function SharePriceManagement() {
   function newSharePrice() {
     if (!isValueValid()) return vault.sharePrice;
     if (!assets) return vault.sharePrice;
+    if (vault.totalSupply.eq('0')) return BN_1E(vault.asset.decimals);
     const newTotalAssets = vault.assetsUnderManagement.sub(vault.assetsInUse).add(assets);
     if (newTotalAssets.eq('0')) return BN_1E(vault.asset.decimals);
     return newTotalAssets.mul(BN_1E(vault.asset.decimals)).div(vault.totalSupply);
