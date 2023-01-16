@@ -1,35 +1,38 @@
 import { RestartAltOutlined, SwapHorizOutlined } from '@mui/icons-material';
 import { Box, Button, Grid, Typography } from '@mui/material';
 import { BigNumber } from 'ethers';
-import React, { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { erc20ABI, useAccount, useBalance, useContractRead, usePrepareContractWrite } from 'wagmi';
-import { BN_1E, BN_ZERO } from '../../lib/constants';
+import { ADDR_DEADBEEF, BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
 import { useVault, vaultABI } from '../../lib/hooks/useVault';
-import { TxState } from '../../lib/TxState';
+import { isWriteSettled, TxState } from '../../lib/TxState';
+import Section from '../displays/Section';
 import ApproveButton from '../inputs/ApproveButton';
 import AssetAmountTextField from '../inputs/AssetAmountTextField';
 import SendTxButton, { SendTxButtonRef } from '../inputs/SendTxButton';
-import Section from '../displays/Section';
 
 function BuyShares() {
   const resetRef = useRef<SendTxButtonRef>(null);
-  const [assetAmount, setAssetAmount] = useState<BigNumber>(BN_ZERO);
-  const [sharesAmount, setSharesAmount] = useState<BigNumber>(BN_ZERO);
-  const [txState, setTxState] = useState<TxState>('Idle');
+  const [vaultBalance, setVaulBalance] = useState<BigNumber>(BN_ZERO);
+  const [withdrawAmount, setWithdrawAmount] = useState<BigNumber>(BN_ZERO);
+  const [redeemAmount, setRedeemAmount] = useState<BigNumber>(BN_ZERO);
+  const [approvalAmount, setApprovalAmount] = useState<BigNumber>(BN_ZERO);
+  const [txState, setTxState] = useState<TxState>('idle');
   const [isApproved, setApproved] = useState<boolean>(false);
 
   const [isWithdrawMode, setWithdrawMode] = useState<boolean>(true);
 
   const { address: account } = useAccount();
 
-  const { vault, refetch: refetchVault } = useVault();
+  const { vault, refetch: refetchVault, convertToAssets, convertToShares } = useVault();
 
-  const { data: vaultBalance } = useBalance({
+  const { data: vaultBalanceData } = useBalance({
     address: vault.address,
     token: vault.asset.address,
     watch: true
   });
+  const { value: vaultBalanceValue } = vaultBalanceData || { value: BN_ZERO };
 
   const { data: accountShares } = useBalance({
     address: account,
@@ -49,109 +52,125 @@ function BuyShares() {
     address: vault.address,
     abi: vaultABI,
     functionName: 'maxRedeem',
-    args: [account],
-    enabled: !!account
+    args: [account ?? ADDR_DEADBEEF]
   });
 
   const { data: maxWithdrawable, refetch: refetchMaxWithdraw } = useContractRead({
     address: vault.address,
     abi: vaultABI,
     functionName: 'maxWithdraw',
-    args: [account],
-    enabled: !!account
+    args: [account ?? ADDR_DEADBEEF]
   });
 
   const { config: approveConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: erc20ABI,
     functionName: 'approve',
-    args: [vault.address, sharesAmount]
+    args: [vault.address, approvalAmount]
   });
 
   const { config: redeemTxConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: vaultABI,
     functionName: 'redeem',
-    args: [sharesAmount ?? BN_ZERO, account ?? '0x0', account ?? '0x0'],
-    enabled: !!account && isApproved && !!sharesAmount && sharesAmount.gt(BN_ZERO)
+    args: [redeemAmount ?? BN_ZERO, account ?? ADDR_DEADBEEF, account ?? ADDR_DEADBEEF]
   });
 
   const { config: withdrawTxConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: vaultABI,
     functionName: 'withdraw',
-    args: [assetAmount ?? BN_ZERO, account ?? '0x0', account ?? '0x0'],
-    enabled: !!account && isApproved && !!assetAmount && assetAmount.gt(BN_ZERO)
+    args: [withdrawAmount ?? BN_ZERO, account ?? ADDR_DEADBEEF, account ?? ADDR_DEADBEEF]
   });
 
   useEffect(() => {
-    if (!allowance || !sharesAmount || assetAmount.eq(BN_ZERO)) setApproved(false);
-    else setApproved(allowance.gte(sharesAmount));
-  }, [allowance]);
+    if (vaultBalanceValue.eq(vaultBalance)) return;
+    setVaulBalance(vaultBalanceValue);
+  }, [vaultBalance, vaultBalanceValue]);
 
-  function onAssetAmountChange(newValue: BigNumber | null) {
-    setAssetAmount(newValue ?? BN_ZERO);
-    setSharesAmount(convertAssets(newValue));
-    if (isWriteSettled()) resetRef.current?.reset();
+  useEffect(() => {
+    refetchMaxRedeem();
+    refetchMaxWithdraw();
+  }, [refetchMaxRedeem, refetchMaxWithdraw, vaultBalance]);
+
+  useEffect(() => {
+    if (!allowance || !approvalAmount || approvalAmount.eq(BN_ZERO)) setApproved(false);
+    else setApproved(allowance.gte(approvalAmount));
+  }, [allowance, approvalAmount]);
+
+  const onWithdrawInputChange = useCallback(
+    (newValue: BigNumber | null) => {
+      if (!newValue) newValue = BN_ZERO;
+      setWithdrawAmount(newValue);
+      setRedeemAmount(convertToShares(newValue));
+      if (newValue.eq(BN_ZERO)) setApprovalAmount(BN_ZERO);
+      else setApprovalAmount(convertToShares(newValue).add(1));
+    },
+    [convertToShares]
+  );
+
+  const onRedeemInputChange = useCallback(
+    (newValue: BigNumber | null) => {
+      setWithdrawAmount(convertToShares(newValue ?? BN_ZERO));
+      setRedeemAmount(newValue ?? BN_ZERO);
+      setApprovalAmount(newValue ?? BN_ZERO);
+    },
+    [convertToShares]
+  );
+
+  function onSwitchButtonClick() {
+    setWithdrawMode(!isWithdrawMode);
   }
 
-  function onSharesAmountChange(newValue: BigNumber | null) {
-    setAssetAmount(convertShares(newValue));
-    setSharesAmount(newValue ?? BN_ZERO);
-    if (isWriteSettled()) resetRef.current?.reset();
-  }
+  const onTxStateChange = useCallback(
+    (newState: TxState) => {
+      setTxState(newState);
+      if (isWriteSettled(newState)) {
+        refetchVault();
+        refetchMaxRedeem();
+        refetchMaxWithdraw();
+      }
+    },
+    [refetchMaxRedeem, refetchMaxWithdraw, refetchVault]
+  );
 
-  function onSwitchToBurnButtonClick() {
-    setWithdrawMode(false);
-  }
-
-  function onSwitchToWithdrawButtonClick() {
-    setWithdrawMode(true);
-  }
-
-  function onTxStateChange(newState: TxState) {
-    setTxState(newState);
-    if (isWriteSettled()) {
-      refetchVault();
-      refetchAllowance();
-    }
-  }
-
-  function onApprovalChange(approvalSuccess: boolean) {
-    setApproved(approvalSuccess);
-    if (approvalSuccess) refetchAllowance();
-  }
+  const onApprovalChange = useCallback(
+    (approvalSuccess: boolean) => {
+      setApproved(approvalSuccess);
+      if (approvalSuccess) refetchAllowance();
+    },
+    [refetchAllowance]
+  );
 
   function onResetButtonClick() {
     resetRef.current?.reset();
+    refetchAllowance();
   }
 
-  function convertAssets(assets?: BigNumber | null): BigNumber {
-    if (!assets || assets.lte('0')) return BN_ZERO;
-    return assets.mul(BN_1E(vault.asset.decimals)).div(vault.sharePrice);
+  function isRedeemAmountValid(): boolean {
+    if (!accountShares || !redeemAmount || !vaultBalance) return false;
+    if (redeemAmount.lte('0')) return false;
+    if (vaultBalance.lte('0')) return false;
+    if (redeemAmount.gt(maxRedeemable as BigNumber)) return false;
+    if (redeemAmount.gt(accountShares.value)) return false;
+    return true;
   }
 
-  function convertShares(shares?: BigNumber | null): BigNumber {
-    if (!shares || shares.lte('0')) return BN_ZERO;
-    return shares.mul(vault.sharePrice).div(BN_1E(vault.decimals));
+  function isWithdrawAmountValid(): boolean {
+    if (!accountShares || !withdrawAmount || !vaultBalance) return false;
+    if (withdrawAmount.lte('0')) return false;
+    if (vaultBalance.lte('0')) return false;
+    return withdrawAmount.lte((maxWithdrawable as BigNumber) ?? BN_ZERO);
   }
 
-  function isWriteSettled() {
-    return txState === 'Success' || txState === 'Error';
-  }
-
-  function isSharesAmountValid(): boolean {
-    if (!accountShares || !sharesAmount || !vaultBalance) return false;
-    if (sharesAmount.lte('0')) return false;
-    if (vaultBalance.value.lte('0')) return false;
-    return sharesAmount.lte((maxRedeemable as BigNumber) ?? BN_ZERO);
-  }
-
-  function isAssetAmountValid(): boolean {
-    if (!accountShares || !assetAmount || !vaultBalance) return false;
-    if (assetAmount.lte('0')) return false;
-    if (vaultBalance.value.lte('0')) return false;
-    return assetAmount.lte((maxWithdrawable as BigNumber) ?? BN_ZERO);
+  function isApprovalAmountValid(): boolean {
+    if (approvalAmount.eq(BN_ZERO)) return false;
+    if ((maxRedeemable as BigNumber).eq(BN_ZERO)) return false;
+    let max = maxRedeemable as BigNumber;
+    if (isWithdrawMode) max = max.add(1);
+    if (approvalAmount.lt(redeemAmount)) return false;
+    if (approvalAmount.gt(max)) return false;
+    return true;
   }
 
   return (
@@ -169,28 +188,29 @@ function BuyShares() {
                   label="You receive"
                   symbol={vault.asset.symbol}
                   decimals={vault.asset.decimals}
-                  defaultValue={assetAmount}
+                  defaultValue={withdrawAmount}
                   maxValue={(maxWithdrawable as BigNumber) ?? BN_ZERO}
-                  onChange={onAssetAmountChange}
+                  onChange={onWithdrawInputChange}
+                  disabled={txState !== 'idle'}
                 ></AssetAmountTextField>
               </Grid>
               <Grid item xs={2} textAlign={'center'}>
-                <Button variant="text" disableRipple onClick={onSwitchToBurnButtonClick}>
+                <Button variant="text" disableRipple onClick={onSwitchButtonClick} disabled={txState !== 'idle'}>
                   <SwapHorizOutlined></SwapHorizOutlined>
                 </Button>
               </Grid>
               <Grid item xs={4} marginTop={'0.5em'} textAlign={'center'}>
-                <Typography variant="body1">{numberFormat(sharesAmount, vault.symbol)}</Typography>
+                <Typography variant="body1">{numberFormat(redeemAmount, vault.symbol)}</Typography>
               </Grid>
             </>
           )}
           {!isWithdrawMode && (
             <>
               <Grid item xs={4} marginTop={'0.5em'} textAlign={'center'}>
-                <Typography variant="body1">{numberFormat(assetAmount, vault.asset.symbol)}</Typography>
+                <Typography variant="body1">{numberFormat(withdrawAmount, vault.asset.symbol)}</Typography>
               </Grid>
               <Grid item xs={2} textAlign={'center'}>
-                <Button variant="text" disableRipple onClick={onSwitchToWithdrawButtonClick}>
+                <Button variant="text" disableRipple onClick={onSwitchButtonClick} disabled={txState !== 'idle'}>
                   <SwapHorizOutlined></SwapHorizOutlined>
                 </Button>
               </Grid>
@@ -199,27 +219,28 @@ function BuyShares() {
                   label="You sell"
                   symbol={vault.symbol}
                   decimals={vault.decimals}
-                  defaultValue={sharesAmount}
+                  defaultValue={redeemAmount}
                   maxValue={(maxRedeemable as BigNumber) ?? BN_ZERO}
-                  onChange={onSharesAmountChange}
+                  onChange={onRedeemInputChange}
+                  disabled={txState !== 'idle'}
                 ></AssetAmountTextField>
               </Grid>
             </>
           )}
-          <Grid item xs={isWriteSettled() ? 5 : 6}>
+          <Grid item xs={isWriteSettled(txState) ? 5 : 6}>
             <ApproveButton
               txConfig={approveConfig}
               allowance={allowance}
-              amountNeeded={sharesAmount}
-              onChange={(success) => onApprovalChange(success)}
-              disabled={!isWriteSettled() && !isSharesAmountValid()}
+              amountNeeded={approvalAmount}
+              onChange={onApprovalChange}
+              disabled={!isWriteSettled(txState) && !isApprovalAmountValid()}
             ></ApproveButton>
           </Grid>
-          <Grid item xs={isWriteSettled() ? 5 : 6}>
+          <Grid item xs={isWriteSettled(txState) ? 5 : 6}>
             {isWithdrawMode ? (
               <SendTxButton
                 txConfig={withdrawTxConfig}
-                disabled={!isApproved || !isAssetAmountValid()}
+                disabled={!isApproved || !isWithdrawAmountValid()}
                 onStateChange={onTxStateChange}
                 ref={resetRef}
               >
@@ -228,7 +249,7 @@ function BuyShares() {
             ) : (
               <SendTxButton
                 txConfig={redeemTxConfig}
-                disabled={!isApproved || !isSharesAmountValid()}
+                disabled={!isApproved || !isRedeemAmountValid()}
                 onStateChange={onTxStateChange}
                 ref={resetRef}
               >
@@ -236,7 +257,7 @@ function BuyShares() {
               </SendTxButton>
             )}
           </Grid>
-          <Grid item xs={isWriteSettled() ? 2 : 0} display={isWriteSettled() ? 'inherit' : 'none'}>
+          <Grid item xs={isWriteSettled(txState) ? 2 : 0} display={isWriteSettled(txState) ? 'inherit' : 'none'}>
             <Button aria-label="Reset Form" variant="contained" color={'error'} onClick={() => onResetButtonClick()}>
               <RestartAltOutlined />
             </Button>

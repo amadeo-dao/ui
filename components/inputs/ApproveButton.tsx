@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { BigNumber } from 'ethers';
-import { Button, CircularProgress } from '@mui/material';
-import { useContractWrite, useWaitForTransaction } from 'wagmi';
 import { CheckOutlined, ErrorOutlined } from '@mui/icons-material';
+import { Button, CircularProgress } from '@mui/material';
+import { BigNumber } from 'ethers';
+import { useEffect, useState } from 'react';
+import { useContractWrite, useWaitForTransaction } from 'wagmi';
 
 enum State {
   Enabled,
@@ -20,43 +20,39 @@ export type ApproveButtonProps = {
   onChange?: (approvalState: boolean) => void;
 };
 
-function ApproveButton(props: ApproveButtonProps) {
+function ApproveButton({ allowance, amountNeeded, disabled, txConfig, onChange }: ApproveButtonProps) {
   const [state, setState] = useState<State>(State.Disabled);
 
-  const { data: txResponse, write, isIdle, isSuccess, isLoading, isError, error } = useContractWrite(props.txConfig);
+  const { data: txResponse, write, status, error } = useContractWrite(txConfig);
 
   useWaitForTransaction({
     hash: txResponse?.hash,
     onError: () => setState(State.Error),
     onSuccess: (data) => {
       if (data.confirmations >= 1) setState(State.Success);
-      props.onChange?.(true);
+      onChange?.(true);
     }
   });
 
   useEffect(() => {
-    if (!props.txConfig) setState(State.Disabled);
-  }, [props.txConfig]);
-
-  useEffect(() => {
-    if (!props.amountNeeded || props.amountNeeded.lte('0')) setState(State.Disabled);
-    else if (!props.allowance) setState(State.Disabled);
-    else if (props.allowance.gte(props.amountNeeded)) setState(State.Success);
+    if (!amountNeeded || amountNeeded.lte('0')) setState(State.Disabled);
+    else if (!allowance) setState(State.Disabled);
+    else if (allowance.gte(amountNeeded)) setState(State.Success);
     else setState(State.Enabled);
-  }, [props.allowance, props.amountNeeded]);
+  }, [allowance, amountNeeded]);
 
   useEffect(() => {
-    if (isLoading) setState(State.Loading);
-    else if (isSuccess) setState(State.Loading);
-    else if (isError) {
+    if (status === 'loading') setState(State.Loading);
+    else if (status === 'success') setState(State.Loading);
+    else if (status === 'error') {
       if (error?.toString().startsWith('UserRejected')) setState(State.Enabled);
       else setState(State.Error);
     }
-  }, [isLoading, isIdle, isError, isSuccess, error]);
+  }, [status, error]);
 
   useEffect(() => {
-    props.onChange?.(state === State.Success);
-  }, [state]);
+    onChange?.(state === State.Success);
+  }, [state, onChange]);
 
   function onButtonClick() {
     write?.();
@@ -107,7 +103,7 @@ function ApproveButton(props: ApproveButtonProps) {
 
   if (state === State.Enabled) {
     return (
-      <Button variant="contained" color={'primary'} disabled={props.disabled} fullWidth onClick={onButtonClick}>
+      <Button variant="contained" color={'primary'} disabled={disabled} fullWidth onClick={onButtonClick}>
         Approve
       </Button>
     );

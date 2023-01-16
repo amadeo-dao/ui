@@ -1,7 +1,7 @@
 import { Button, FormControl, InputAdornment, InputLabel, OutlinedInput } from '@mui/material';
 import { BigNumber, BigNumberish } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils.js';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export type AssetAmountTextFieldProps = {
   symbol: string;
@@ -10,62 +10,59 @@ export type AssetAmountTextFieldProps = {
   decimals?: number;
   defaultValue?: BigNumberish;
   maxValue?: BigNumberish;
-  id?: string;
-  onChange: (newValue: BigNumber | null) => void;
+  textFieldId?: string;
+  onChange?: (newValue: BigNumber | null) => void;
 };
 
-function AssetAmountTextField(props: AssetAmountTextFieldProps) {
-  const [value, setValue] = useState<string>(props.defaultValue ? formatValue(props.defaultValue) : '');
+function AssetAmountTextField({
+  decimals,
+  defaultValue,
+  disabled,
+  label,
+  maxValue,
+  onChange,
+  symbol,
+  textFieldId
+}: AssetAmountTextFieldProps) {
+  const [value, setValue] = useState<string>(defaultValue ? formatValue(defaultValue) : '');
 
   const id = useMemo(() => {
-    if (props.id && props.id.length > 0) return props.id;
+    if (textFieldId && textFieldId.length > 0) return textFieldId;
     return 'asset-amount-input-field-' + Math.floor(Math.random() * 1000);
-  }, [props.id]);
-
-  function formatValue(value?: BigNumberish | null): string {
-    return formatUnits(value ?? '0', props.decimals ?? 18);
-  }
-
-  function parseValue(value: string): BigNumber | null {
-    try {
-      return parseUnits(value, props.decimals ?? 18);
-    } catch (e) {
-      return null;
-    }
-  }
+  }, [textFieldId]);
 
   useEffect(() => {
-    props.onChange(parseValue(value));
-  }, [value]);
+    onChange?.(parseValue(value, decimals));
+  }, [value, decimals, onChange]);
 
   function onValueChange(newValue: string) {
     setValue(newValue);
   }
 
   function onMaxButtonClick() {
-    if (props.maxValue) setValue(formatValue(props.maxValue));
+    if (maxValue) setValue(formatValue(maxValue, decimals));
   }
 
   return (
     <FormControl fullWidth>
-      <InputLabel htmlFor={id}>{props.label}</InputLabel>
+      <InputLabel htmlFor={id}>{label}</InputLabel>
       <OutlinedInput
         id={id}
         size="small"
-        label={props.label}
+        label={label}
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
         color={!!parseValue(value) ? 'info' : 'error'}
-        disabled={!!props.disabled}
+        disabled={!!disabled}
         endAdornment={
           <InputAdornment position="end">
             <>
-              {props.maxValue && (
-                <Button variant="text" size="small" disableRipple disabled={!!props.disabled} onClick={onMaxButtonClick}>
+              {maxValue && (
+                <Button variant="text" size="small" disableRipple disabled={!!disabled} onClick={onMaxButtonClick}>
                   Max
                 </Button>
               )}
-              {props.symbol}
+              {symbol}
             </>
           </InputAdornment>
         }
@@ -75,3 +72,15 @@ function AssetAmountTextField(props: AssetAmountTextFieldProps) {
 }
 
 export default AssetAmountTextField;
+
+function formatValue(value?: BigNumberish | null, decimals?: number): string {
+  return formatUnits(value ?? '0', decimals ?? 18);
+}
+
+function parseValue(value: string, decimals?: number): BigNumber | null {
+  try {
+    return parseUnits(value, decimals ?? 18);
+  } catch (e) {
+    return null;
+  }
+}

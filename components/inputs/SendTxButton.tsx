@@ -1,4 +1,4 @@
-import { CheckOutlined, ErrorOutlined, SendOutlined } from '@mui/icons-material';
+import { CheckOutlined, ErrorOutlined } from '@mui/icons-material';
 import { Button, CircularProgress } from '@mui/material';
 import React, { ForwardedRef, PropsWithChildren, ReactElement, useEffect, useImperativeHandle, useState } from 'react';
 import { useContractWrite, useWaitForTransaction } from 'wagmi';
@@ -17,75 +17,75 @@ export type SendTxButtonRef = {
 
 export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<SendTxButtonProps>>(
   (props: React.PropsWithChildren<SendTxButtonProps>, ref: ForwardedRef<SendTxButtonRef>) => {
-    const [state, setState] = useState<TxState>('Idle');
-    const [icon] = useState<ReactElement | undefined>(props.icon);
-
+    const { children, disabled, icon, onStateChange, txConfig } = props as React.PropsWithChildren<SendTxButtonProps>;
+    const [state, setState] = useState<TxState>('idle');
     useImperativeHandle(ref, () => ({
       reset() {
         reset?.();
       }
     }));
 
-    const { data: response, write, error, reset, isLoading, isError, isIdle, isSuccess } = useContractWrite(props.txConfig);
+    const { data: response, write, error, reset, isLoading, isError, isIdle, isSuccess } = useContractWrite(txConfig);
 
     const { data: txReceipt } = useWaitForTransaction({
       hash: response?.hash,
-      onError: () => {
-        setState('Error');
+      onError: (err) => {
+        setState('error');
       }
     });
 
     useEffect(() => {
       if (isError) {
-        if (error?.toString().startsWith('UserRejected')) setState('Idle');
-        else setState('Error');
-      } else if (isLoading) setState('Loading');
+        if (error?.toString().startsWith('UserRejected')) setState('idle');
+        else setState('error');
+      } else if (isLoading) setState('loading');
       else if (isSuccess) {
         if (txReceipt) {
-          if (txReceipt.confirmations === 0) setState('Loading');
+          if (txReceipt.confirmations === 0) setState('loading');
           else if (txReceipt.confirmations >= 1) {
-            setState('Success');
+            setState('success');
           }
         }
       } else if (isIdle) {
-        setState('Idle');
+        setState('idle');
       }
     }, [isError, isLoading, isIdle, isSuccess, txReceipt, error]);
 
     useEffect(() => {
-      props.onStateChange?.(state);
-    }, [state, props.onStateChange]);
+      onStateChange?.(state);
+    }, [state, onStateChange]);
 
     function onButtonClick() {
-      if (props.disabled) return;
+      if (disabled) return;
+      if (state !== 'idle') return;
       write?.();
     }
 
     return (
       <Button
         variant="contained"
-        disabled={props.disabled}
-        color={state === 'Success' ? 'success' : 'primary'}
+        disabled={disabled}
+        color={state === 'success' ? 'success' : 'primary'}
         fullWidth
         onClick={() => onButtonClick()}
-        disableElevation={state !== 'Idle'}
-        disableRipple={state !== 'Idle'}
+        disableElevation={state !== 'idle'}
+        disableRipple={state !== 'idle'}
         startIcon={
-          state === 'Loading' ? (
+          state === 'loading' ? (
             <CircularProgress size={16} color={'inherit'} />
-          ) : state === 'Success' ? (
+          ) : state === 'success' ? (
             <CheckOutlined />
-          ) : state === 'Error' ? (
-            <ErrorOutlined color="error" />
+          ) : state === 'error' ? (
+            <ErrorOutlined />
           ) : (
             icon ?? <></>
           )
         }
         sx={{
-          cursor: state === 'Idle' ? 'pointer' : 'default'
+          cursor: state === 'idle' ? 'pointer' : 'default'
         }}
       >
-        {props.children}
+        {children}
       </Button>
     );
   }

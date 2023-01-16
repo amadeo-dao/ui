@@ -1,5 +1,4 @@
 import { Grid } from '@mui/material';
-import React from 'react';
 import { useAccount, useContractRead } from 'wagmi';
 import { useVault, vaultABI } from '../lib/hooks/useVault';
 import BuyShares from './ShareholderSection/BuyShares';

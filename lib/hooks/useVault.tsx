@@ -1,10 +1,10 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
 import { Vault, VaultDefaults } from '../vault';
 
-import vaultAbiJson from '../../lib/vault.abi.json';
-import { useContractRead } from 'wagmi';
 import { BigNumber } from 'ethers';
-import { BN_1E } from '../constants';
+import { useContractRead } from 'wagmi';
+import vaultAbiJson from '../../lib/vault.abi.json';
+import { BN_1E, BN_ZERO } from '../constants';
 
 export const vaultABI = vaultAbiJson;
 
@@ -32,6 +32,8 @@ export type UseVaultReturnType = {
   refetchAUM: () => void;
   refetchSharePrice: () => void;
   refetchTotalSupply: () => void;
+  convertToAssets: (shares: BigNumber) => BigNumber;
+  convertToShares: (assets: BigNumber) => BigNumber;
 };
 
 export function useVault(): UseVaultReturnType {
@@ -61,7 +63,7 @@ export function useVault(): UseVaultReturnType {
     }
   });
 
-  const { refetch: refetchAIM } = useContractRead({
+  const { refetch: refetchAIU } = useContractRead({
     address: vaultDefaults.address,
     abi: vaultABI,
     functionName: 'assetsInUse',
@@ -82,9 +84,26 @@ export function useVault(): UseVaultReturnType {
     }
   });
 
+  const convertToAssets = useCallback(
+    (shares: BigNumber): BigNumber => {
+      if (shares.lte('0')) return BN_ZERO;
+      return shares.mul(sharePrice).div(BN_1E(vaultDefaults.decimals));
+    },
+    [sharePrice, vaultDefaults.decimals]
+  );
+
+  const convertToShares = useCallback(
+    (assets: BigNumber): BigNumber => {
+      if (assets.lte('0')) return BN_ZERO;
+      return assets.mul(BN_1E(vaultDefaults.asset.decimals)).div(sharePrice);
+    },
+    [sharePrice, vaultDefaults.asset.decimals]
+  );
+
   async function refetch() {
-    refetchTotalSupply();
     refetchAUM();
+    refetchTotalSupply();
+    refetchAIU();
     refetchSharePrice();
   }
 
@@ -105,7 +124,7 @@ export function useVault(): UseVaultReturnType {
     assetsInUse: aiu,
     sharePrice: sharePrice
   };
-  return { vault, refetch, refetchAUM, refetchSharePrice, refetchTotalSupply };
+  return { vault, refetch, refetchAUM, refetchSharePrice, refetchTotalSupply, convertToAssets, convertToShares };
 }
 
 const VaultDefaultsContext = createContext(defaultVault);
