@@ -20,6 +20,17 @@ CRV_3POOL=0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7
 USDT=0xdAC17F958D2ee523a2206206994597C13D831ec7
 DAI=0x6B175474E89094C44Da98b954EedeAC495271d0F
 
+# Clone the vault and extract vault address from logs
+echo "Deploying vault contract."
+VAULT=`cast send --rpc-url http://localhost:8545 --private-key $MANAGER_PK $FACTORY --json \
+    "create(address,address,string,string) returns (address)" \
+    $MANAGER $DAI "UI Testing Vault" "VAULT" \
+    | jq .logs[1].topics[1]` 
+VAULT=`echo $VAULT | sed -r 's/^".+(.{40})"$/0x\1/'`
+
+echo " => $VAULT"
+echo ""
+
 ## Swap 10 ETH to any amount of USDT
 echo "Swapping 10 ETH to USDT via Curve Tricrypto2."
 cast send --from $MANAGER --rpc-url $RPC_URL --value 10000000000000000000 $CRV_TRICRYPTO2  "exchange(uint256 i, uint256 j, uint256 dx, uint256 min_dy, bool use_eth)" "2" "0"  "10000000000000000000" "1000000" "true" >/dev/null
@@ -39,15 +50,6 @@ BALANCE_DAI=`cast td $BALANCE_DAI`
 BALANCE_DAI=`cast 2un $BALANCE_DAI ether`
 echo "DAI Balance in manager account: $BALANCE_DAI"
 
-# Clone the vault and extract vault address from logs
-echo "Deploying vault contract."
-VAULT=`cast send --rpc-url http://localhost:8545 --private-key $MANAGER_PK $FACTORY --json \
-    "create(address,address,string,string) returns (address)" \
-    $MANAGER $DAI "UI Testing Vault" "VAULT" \
-    | jq .logs[1].topics[1]` 
-VAULT=`echo $VAULT | sed -r 's/^".+(.{40})"$/0x\1/'`
-
-echo " => $VAULT"
 
 TRANSFER_DAI=`echo $BALANCE_DAI | sed -r 's/\.[0-9]+//'`
 TRANSFER_DAI_DISPLAY=`expr $TRANSFER_DAI / 3`
