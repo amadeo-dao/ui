@@ -61,7 +61,7 @@ function Erc20ApproveButton({ amountNeeded, disabled, label, onAllowanceChange, 
 
   useEffect(() => {
     if (!txError) return;
-    if (txError.message?.startsWith('UserRejected')) resetTx();
+    if (txError.toString().startsWith('UserRejected')) resetTx();
   }, [txError, resetTx]);
 
   const onButtonClick = useCallback(() => {
