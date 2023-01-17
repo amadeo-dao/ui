@@ -1,11 +1,12 @@
 import { AddOutlined, CheckOutlined, RemoveOutlined } from '@mui/icons-material';
 import { Box, Grid, Typography } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useContractRead, usePrepareContractWrite } from 'wagmi';
+import { ADDR_DEADBEEF } from '../../lib/constants';
 import { useVault, vaultABI } from '../../lib/hooks/useVault';
+import Section from '../displays/Section';
 import AddressTextField from '../inputs/AddressTextField';
 import SendTxButton from '../inputs/SendTxButton';
-import Section from '../displays/Section';
 
 function ShareholderManagement() {
   const { vault } = useVault();
@@ -17,40 +18,40 @@ function ShareholderManagement() {
     address: vault.address,
     abi: vaultABI,
     functionName: 'isShareholder',
-    args: [address],
-    enabled: !!address
+    args: [address]
   });
   const { config: addTxConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: vaultABI,
     functionName: 'whitelistShareholder',
-    args: [address ?? '0x001111'],
-    enabled: !!address
+    args: [address ?? ADDR_DEADBEEF]
   });
   const { config: removeTxConfig } = usePrepareContractWrite({
     address: vault.address,
     abi: vaultABI,
     functionName: 'revokeShareholder',
-    args: [address ?? '0x0ddd'],
-    enabled: !!address
+    args: [address ?? ADDR_DEADBEEF]
   });
 
   useEffect(() => {
     refetchIsShareholder();
-  }, [address]);
+  }, [address, refetchIsShareholder]);
 
-  function onValueChange(newValue: string | null) {
-    if (newValue === manager) setAddress(null);
-    else setAddress(newValue);
-  }
+  const onValueChange = useCallback(
+    (newValue: string | null) => {
+      if (newValue === manager) setAddress(null);
+      else setAddress(newValue);
+    },
+    [manager]
+  );
 
-  function onAddTxStateChange() {
+  const onAddTxStateChange = useCallback(() => {
     refetchIsShareholder();
-  }
+  }, [refetchIsShareholder]);
 
-  function onRemoveTxStateChange() {
+  const onRemoveTxStateChange = useCallback(() => {
     refetchIsShareholder();
-  }
+  }, [refetchIsShareholder]);
 
   return (
     <Section heading="Shareholder Management">

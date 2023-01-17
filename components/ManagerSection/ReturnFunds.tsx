@@ -2,85 +2,59 @@ import vaultAbi from '../../lib/vault.abi.json';
 
 import { Box, Button, Grid, Skeleton } from '@mui/material';
 
-import { FormEvent, useEffect, useRef, useState } from 'react';
-import { erc20ABI, useAccount, useBalance, useContractRead, usePrepareContractWrite } from 'wagmi';
+import { CallMadeOutlined, RestartAltOutlined } from '@mui/icons-material';
+import { BigNumber } from 'ethers';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { useAccount, useBalance, usePrepareContractWrite } from 'wagmi';
+import { ADDR_DEADBEEF, BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
 import { useVault } from '../../lib/hooks/useVault';
+import { isWriteSettled, TxState } from '../../lib/TxState';
 import Section from '../displays/Section';
-import { BN_ZERO } from '../../lib/constants';
-import { BigNumber } from 'ethers';
 import AssetAmountTextField from '../inputs/AssetAmountTextField';
-import ApproveButton from '../inputs/ApproveButton';
+import Erc20ApproveButton from '../inputs/Erc20ApproveButton';
 import SendTxButton, { SendTxButtonRef } from '../inputs/SendTxButton';
-import { CallMadeOutlined, RestartAltOutlined } from '@mui/icons-material';
-import { TxState } from '../../lib/TxState';
 
 function ReturnFunds() {
   const resetRef = useRef<SendTxButtonRef>(null);
   const { vault } = useVault();
-  const [isApproved, setApproved] = useState<boolean>(false);
+  const [allowance, setAllowance] = useState<BigNumber>(BN_ZERO);
+  const [value, setValue] = useState<BigNumber>(BN_ZERO);
+  const [txState, setTxState] = useState<TxState>('idle');
+  const [balance, setBalance] = useState<BigNumber>(BN_ZERO);
+
   const { address } = useAccount();
-  const [value, setValue] = useState<BigNumber | null>(null);
-  const [txState, setTxState] = useState<TxState>();
 
-  const { address: owner } = useAccount();
-
-  const { data: balance } = useBalance({
+  const { data: balanceData } = useBalance({
     address,
     token: vault.asset.address,
     watch: true
   });
+  const { value: balanceValue } = balanceData || { value: BN_ZERO };
 
   const { config: txConfig } = usePrepareContractWrite({
     address: vault.address,
     functionName: 'returnAssets',
     abi: vaultAbi,
-    args: [address ?? '0x0', value ?? BN_ZERO],
-    enabled: !!value && isApproved
-  });
-
-  const { data: allowance, refetch: refetchAllowance } = useContractRead({
-    address: vault.asset.address,
-    abi: erc20ABI,
-    functionName: 'allowance',
-    args: [owner ?? '0x0', vault.address],
-    enabled: !!owner
-  });
-
-  const { config: approveConfig } = usePrepareContractWrite({
-    address: vault.asset.address,
-    abi: erc20ABI,
-    functionName: 'approve',
-    args: [vault.address, value ?? BN_ZERO],
-    enabled: !!value && value.gt('0')
+    args: [address ?? ADDR_DEADBEEF, value ?? BN_ZERO]
   });
 
   useEffect(() => {
-    if (!allowance || !value || value.eq(BN_ZERO)) setApproved(false);
-    else setApproved(allowance.gte(value));
-  }, [allowance]);
+    if (balanceValue.eq(balance)) return;
+    setBalance(balanceValue);
+  }, [balanceValue, balance]);
 
-  function onValueChange(newValue: BigNumber | null) {
-    if (newValue && balance && newValue.gt(balance.value)) setValue(null);
+  const onValueChange = useCallback((newValue: BigNumber | null) => {
+    if (!newValue || newValue.lte(BN_ZERO)) setValue(BN_ZERO);
     else setValue(newValue);
-    if (txState === 'Success' || txState === 'Error') resetRef.current?.reset();
-  }
+  }, []);
+
+  const onAllowanceChange = useCallback((newAllowance: BigNumber) => {
+    setAllowance(newAllowance);
+  }, []);
 
   function onResetButtonClick() {
-    refetchAllowance();
     resetRef.current?.reset();
-  }
-
-  function onTxStateChange(state: TxState) {
-    setTxState(state);
-  }
-
-  function onApprovalChange(success: boolean) {
-    setApproved(success);
-  }
-
-  function isWriteSettled() {
-    return txState === 'Success' || txState === 'Error';
   }
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -91,7 +65,7 @@ function ReturnFunds() {
     <Section heading="Return Funds to Vault" headingAlign="center">
       <Box textAlign="left">
         Assets in Wallet:&nbsp;
-        {balance ? numberFormat(balance.value, balance.symbol) : <Skeleton variant="rectangular" width={'8em'} height={'1em'} />}
+        {balance ? numberFormat(balance, vault.asset.symbol) : <Skeleton variant="rectangular" width={'8em'} height={'1em'} />}
       </Box>
       <Box mt="1em" textAlign={'left'}>
         <form onSubmit={onSubmit}>
@@ -101,32 +75,33 @@ function ReturnFunds() {
                 symbol={vault.asset.symbol}
                 label={'Assets to send to Vault'}
                 decimals={vault.asset.decimals}
-                maxValue={balance?.value}
+                maxValue={balance}
                 onChange={onValueChange}
                 defaultValue={BN_ZERO}
-                disabled={txState === 'Loading'}
+                disabled={txState !== 'idle'}
               ></AssetAmountTextField>
             </Grid>
-            <Grid item xs={isWriteSettled() ? 5 : 6}>
-              <ApproveButton
-                txConfig={approveConfig}
-                allowance={allowance}
+            <Grid item xs={isWriteSettled(txState) ? 5 : 6}>
+              <Erc20ApproveButton
+                token={vault.asset.address}
                 amountNeeded={value}
-                onChange={(success) => onApprovalChange(success)}
-              ></ApproveButton>
+                spender={vault.address}
+                onAllowanceChange={onAllowanceChange}
+                disabled={value.gt(balance)}
+              ></Erc20ApproveButton>
             </Grid>
-            <Grid item xs={isWriteSettled() ? 5 : 6}>
+            <Grid item xs={isWriteSettled(txState) ? 5 : 6}>
               <SendTxButton
                 txConfig={txConfig}
-                disabled={!isApproved}
-                onStateChange={onTxStateChange}
+                disabled={value.eq(BN_ZERO) || value.gt(allowance) || value.gt(balance)}
+                onStateChange={setTxState}
                 ref={resetRef}
                 icon={<CallMadeOutlined />}
               >
                 <>Return Funds</>
               </SendTxButton>
             </Grid>
-            <Grid item xs={isWriteSettled() ? 2 : 0} display={isWriteSettled() ? 'inherit' : 'none'}>
+            <Grid item xs={isWriteSettled(txState) ? 2 : 0} display={isWriteSettled(txState) ? 'inherit' : 'none'}>
               <Button aria-label="Reset Form" variant="contained" color={'error'} onClick={() => onResetButtonClick()}>
                 <RestartAltOutlined />
               </Button>

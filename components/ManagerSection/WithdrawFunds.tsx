@@ -3,21 +3,21 @@ import vaultAbi from '../../lib/vault.abi.json';
 import { CallReceivedOutlined, RestartAltOutlined } from '@mui/icons-material';
 import { Box, Button, Grid, Skeleton } from '@mui/material';
 import { BigNumber } from 'ethers';
-import React, { useContext, useRef, useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount, useBalance, usePrepareContractWrite } from 'wagmi';
 import { BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
-import { TxState } from '../../lib/TxState';
+import { useVault } from '../../lib/hooks/useVault';
+import { isWriteSettled, TxState } from '../../lib/TxState';
+import Section from '../displays/Section';
 import AssetAmountTextField from '../inputs/AssetAmountTextField';
 import SendTxButton, { SendTxButtonRef } from '../inputs/SendTxButton';
-import Section from '../displays/Section';
-import { useVault } from '../../lib/hooks/useVault';
 
 function WithdrawFunds() {
   const resetRef = useRef<SendTxButtonRef>(null);
 
   const [value, setValue] = useState<BigNumber | null>();
-  const [txState, setTxState] = useState<TxState>();
+  const [txState, setTxState] = useState<TxState>('idle');
   const [isButtonDisabled, setButtonDisabled] = useState(false);
 
   const { vault } = useVault();
@@ -38,28 +38,22 @@ function WithdrawFunds() {
     enabled: !!owner && !!value
   });
 
-  function onValueChange(newValue: BigNumber | null) {
-    if (newValue && balance && newValue.gt(balance.value)) setValue(null);
-    else setValue(newValue);
-    if (txState === 'Success' || txState === 'Error') resetRef.current?.reset();
-  }
-
-  function onResetButtonClick() {
-    resetRef.current?.reset();
-  }
-
-  function isWriteSettled() {
-    return txState === 'Success' || txState === 'Error';
-  }
-
   useEffect(() => {
-    if (txState === 'Success') setButtonDisabled(false);
+    if (txState === 'success') setButtonDisabled(false);
     else if (!!value && !!balance && value.gt(BN_ZERO) && value.lte(balance.value)) setButtonDisabled(false);
     else setButtonDisabled(true);
   }, [txState, value, balance]);
 
-  function onTxStateChange(newState: TxState) {
-    setTxState(newState);
+  const onValueChange = useCallback(
+    (newValue: BigNumber | null) => {
+      if (newValue && balance && newValue.gt(balance.value)) setValue(null);
+      else setValue(newValue);
+    },
+    [balance]
+  );
+
+  function onResetButtonClick() {
+    resetRef.current?.reset();
   }
 
   return (
@@ -78,21 +72,21 @@ function WithdrawFunds() {
               maxValue={balance?.value}
               onChange={onValueChange}
               defaultValue={BN_ZERO}
-              disabled={txState === 'Loading'}
+              disabled={txState !== 'idle'}
             ></AssetAmountTextField>
           </Grid>
-          <Grid item xs={isWriteSettled() ? 10 : 12}>
+          <Grid item xs={isWriteSettled(txState) ? 10 : 12}>
             <SendTxButton
               txConfig={txConfig}
               disabled={isButtonDisabled}
-              onStateChange={onTxStateChange}
+              onStateChange={setTxState}
               ref={resetRef}
               icon={<CallReceivedOutlined />}
             >
               <>Withdraw Funds</>
             </SendTxButton>
           </Grid>
-          <Grid item xs={isWriteSettled() ? 2 : 0} display={isWriteSettled() ? 'inherit' : 'none'}>
+          <Grid item xs={isWriteSettled(txState) ? 2 : 0} display={isWriteSettled(txState) ? 'inherit' : 'none'}>
             <Button aria-label="Reset Form" variant="contained" color={'error'} onClick={() => onResetButtonClick()}>
               <RestartAltOutlined />
             </Button>

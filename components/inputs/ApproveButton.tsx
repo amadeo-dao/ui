@@ -108,6 +108,7 @@ function ApproveButton({ allowance, amountNeeded, disabled, txConfig, onChange }
       </Button>
     );
   }
+
   return <></>;
 }
 
