@@ -3,7 +3,7 @@ import { Button, CircularProgress } from '@mui/material';
 import { BigNumber } from 'ethers';
 import { useCallback, useEffect, useState } from 'react';
 import { erc20ABI, useAccount, useContractRead, useContractWrite, usePrepareContractWrite, useWaitForTransaction } from 'wagmi';
-import { ADDR_DEADBEEF, BN_ZERO } from '../../lib/constants';
+import { ADDR_BLACKHOLE, BN_ZERO } from '../../lib/constants';
 import EvmAddress from '../../lib/evmAddress';
 
 export type Erc20ApproveButtonProps = {
@@ -21,16 +21,18 @@ function Erc20ApproveButton({ amountNeeded, disabled, label, onAllowanceChange, 
 
   const { address: owner } = useAccount();
 
+  const isActive = !!owner && !!amountNeeded && !!spender;
+
   const { data: allowanceData, refetch: refetchAllowanceData } = useContractRead({
-    address: token,
+    address: isActive ? token : undefined,
     abi: erc20ABI,
     functionName: 'allowance',
-    args: [owner ?? ADDR_DEADBEEF, spender],
+    args: [owner ?? ADDR_BLACKHOLE, spender],
     watch: true
   });
 
   const { config: txConfig } = usePrepareContractWrite({
-    address: token,
+    address: isActive ? token : undefined,
     abi: erc20ABI,
     functionName: 'approve',
     args: [spender, amountNeeded]

@@ -1,6 +1,6 @@
 import { FormControl, InputLabel, OutlinedInput } from '@mui/material';
 import { getAddress } from 'ethers/lib/utils.js';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export type AddressTextFieldProps = {
   label: string;

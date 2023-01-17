@@ -6,7 +6,7 @@ import { CallMadeOutlined, RestartAltOutlined } from '@mui/icons-material';
 import { BigNumber } from 'ethers';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount, useBalance, usePrepareContractWrite } from 'wagmi';
-import { ADDR_DEADBEEF, BN_ZERO } from '../../lib/constants';
+import { ADDR_BLACKHOLE, BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
 import { useVault } from '../../lib/hooks/useVault';
 import { isWriteSettled, TxState } from '../../lib/TxState';
@@ -32,11 +32,12 @@ function ReturnFunds() {
   });
   const { value: balanceValue } = balanceData || { value: BN_ZERO };
 
+  const isActive = !!address && value.gt(BN_ZERO) && value.lte(allowance);
   const { config: txConfig } = usePrepareContractWrite({
-    address: vault.address,
+    address: isActive ? vault.address : undefined,
     functionName: 'returnAssets',
     abi: vaultAbi,
-    args: [address ?? ADDR_DEADBEEF, value ?? BN_ZERO]
+    args: [address ?? ADDR_BLACKHOLE, value]
   });
 
   useEffect(() => {
@@ -87,7 +88,7 @@ function ReturnFunds() {
                 amountNeeded={value}
                 spender={vault.address}
                 onAllowanceChange={onAllowanceChange}
-                disabled={value.gt(balance)}
+                disabled={txState !== 'idle' || value.gt(balance)}
               ></Erc20ApproveButton>
             </Grid>
             <Grid item xs={isWriteSettled(txState) ? 5 : 6}>
