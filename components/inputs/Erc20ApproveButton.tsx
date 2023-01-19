@@ -52,8 +52,7 @@ const Erc20ApproveButton = forwardRef<Erc20ApproveButtonRef, Erc20ApproveButtonP
       onSuccess: (newAllowance) => {
         if (allowance?.eq(newAllowance)) return;
         setAllowance(newAllowance);
-      },
-      watch: true
+      }
     });
 
     const canWrite = !!owner && !amountNeeded.eq(BN_ZERO) && !disabled;
@@ -79,7 +78,6 @@ const Erc20ApproveButton = forwardRef<Erc20ApproveButtonRef, Erc20ApproveButtonP
     });
 
     useEffect(() => {
-      console.log(txState);
       setIsDone(false);
     }, [amountNeeded]);
 
@@ -107,14 +105,7 @@ const Erc20ApproveButton = forwardRef<Erc20ApproveButtonRef, Erc20ApproveButtonP
     const onButtonClick = useCallback(() => {
       writeTx?.();
     }, [writeTx]);
-
-    if (disabled || amountNeeded.lte('0'))
-      return (
-        <Button variant="contained" color={'primary'} fullWidth disabled>
-          {label}
-        </Button>
-      );
-    else if (isDone || state === 'success')
+    if (isDone || state === 'success')
       return (
         <Button
           variant="contained"
@@ -126,6 +117,12 @@ const Erc20ApproveButton = forwardRef<Erc20ApproveButtonRef, Erc20ApproveButtonP
           sx={{ cursor: 'default' }}
         >
           {successLabel}
+        </Button>
+      );
+    else if (disabled || amountNeeded.lte('0'))
+      return (
+        <Button variant="contained" color={'primary'} fullWidth disabled>
+          {label}
         </Button>
       );
     else if (state === 'error')

@@ -76,10 +76,11 @@ function RedeemForm({ onSwitchMode }: RedeemFormProps) {
 
   const onTxStateChange = useCallback(
     (newState: TxState) => {
+      if (txState === newState) return;
       if (newState === 'success') refetchVault();
       setTxState(newState);
     },
-    [refetchVault]
+    [refetchVault, txState]
   );
 
   const onAllowanceChange = useCallback(
