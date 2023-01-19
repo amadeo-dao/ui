@@ -19,37 +19,35 @@ export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<
   (props: React.PropsWithChildren<SendTxButtonProps>, ref: ForwardedRef<SendTxButtonRef>) => {
     const { children, disabled, icon, onStateChange, txConfig } = props as React.PropsWithChildren<SendTxButtonProps>;
     const [state, setState] = useState<TxState>('idle');
+
     useImperativeHandle(ref, () => ({
       reset() {
         reset?.();
       }
     }));
 
-    const { data: response, write, error, reset, isLoading, isError, isIdle, isSuccess } = useContractWrite(txConfig);
+    const { data: response, write, error, reset, status: txState } = useContractWrite(txConfig);
 
-    const { data: txReceipt } = useWaitForTransaction({
+    useWaitForTransaction({
       hash: response?.hash,
-      onError: (err) => {
+      onSuccess: () => {
+        setState('success');
+      },
+      onError: () => {
         setState('error');
       }
     });
 
     useEffect(() => {
-      if (isError) {
-        if (error?.toString().startsWith('UserRejected')) setState('idle');
-        else setState('error');
-      } else if (isLoading) setState('loading');
-      else if (isSuccess) {
-        if (txReceipt) {
-          if (txReceipt.confirmations === 0) setState('loading');
-          else if (txReceipt.confirmations >= 1) {
-            setState('success');
-          }
-        }
-      } else if (isIdle) {
-        setState('idle');
-      }
-    }, [isError, isLoading, isIdle, isSuccess, txReceipt, error]);
+      if (txState !== 'error') return;
+      if (error?.toString().startsWith('UserRejected')) setState('idle');
+      else setState('error');
+    }, [txState, error]);
+
+    useEffect(() => {
+      if (txState === 'success' || txState === 'loading') setState('loading');
+      else if (txState === 'idle') setState('idle');
+    }, [txState]);
 
     useEffect(() => {
       onStateChange?.(state);
@@ -64,7 +62,7 @@ export const SendTxButton = React.forwardRef<SendTxButtonRef, PropsWithChildren<
     return (
       <Button
         variant="contained"
-        disabled={disabled}
+        disabled={state === 'idle' && disabled}
         color={state === 'success' ? 'success' : 'primary'}
         fullWidth
         onClick={() => onButtonClick()}

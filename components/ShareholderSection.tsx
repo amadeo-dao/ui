@@ -2,7 +2,6 @@ import { Grid } from '@mui/material';
 import { useAccount, useContractRead } from 'wagmi';
 import { useVault, vaultABI } from '../lib/hooks/useVault';
 import BuyShares from './ShareholderSection/BuyShares';
-import SellShares from './ShareholderSection/SellShares';
 
 function ShareholderSection() {
   const { vault } = useVault();
@@ -28,7 +27,7 @@ function ShareholderSection() {
             <BuyShares></BuyShares>
           </Grid>
           <Grid item xs={6}>
-            <SellShares></SellShares>
+            {/*<SellShares></SellShares>*/}
           </Grid>
         </Grid>
       </Grid>

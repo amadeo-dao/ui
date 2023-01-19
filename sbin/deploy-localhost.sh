@@ -63,7 +63,5 @@ TRANSFER_DAI=`cast tw $TRANSFER_DAI_DISPLAY`
 
 echo "Transfering $TRANSFER_DAI_DISPLAY DAI to owner."
 cast send --from $MANAGER $DAI "transfer(address,uint256)" $OWNER $TRANSFER_DAI >/dev/null
-echo "Transfering $TRANSFER_DAI_DISPLAY DAI to vault."
-cast send --from $MANAGER $DAI "transfer(address,uint256)" $VAULT $TRANSFER_DAI >/dev/null
 
 exit 0
