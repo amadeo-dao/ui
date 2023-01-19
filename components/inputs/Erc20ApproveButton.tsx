@@ -79,6 +79,7 @@ const Erc20ApproveButton = forwardRef<Erc20ApproveButtonRef, Erc20ApproveButtonP
     });
 
     useEffect(() => {
+      console.log(txState);
       setIsDone(false);
     }, [amountNeeded]);
 
@@ -107,7 +108,7 @@ const Erc20ApproveButton = forwardRef<Erc20ApproveButtonRef, Erc20ApproveButtonP
       writeTx?.();
     }, [writeTx]);
 
-    if (amountNeeded.lte('0'))
+    if (disabled || amountNeeded.lte('0'))
       return (
         <Button variant="contained" color={'primary'} fullWidth disabled>
           {label}
