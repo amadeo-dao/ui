@@ -50,6 +50,10 @@ function MintForm({ onSwitchMode }: MintFormProps) {
   });
 
   useEffect(() => {
+    refetchVault();
+  }, [refetchVault]);
+
+  useEffect(() => {
     const newApproveAmount = depositAmount.add(depositAmount.eq(BN_ZERO) ? BN_ZERO : BN_ONE);
     if (newApproveAmount.eq(approveAmount)) return;
     setApproveAmount(newApproveAmount);

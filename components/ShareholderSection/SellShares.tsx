@@ -10,7 +10,7 @@ function SellShares() {
     setWithdrawMode(!isWithdrawMode);
   }
   return (
-    <Section heading="Buy Shares" headingAlign="center">
+    <Section heading="Sell Shares" headingAlign="center">
       {!isWithdrawMode && <RedeemForm onSwitchMode={handleSwitchMode}></RedeemForm>}
       {isWithdrawMode && <WithdrawForm onSwitchMode={handleSwitchMode}></WithdrawForm>}
     </Section>

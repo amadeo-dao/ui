@@ -28,8 +28,6 @@ function WithdrawForm({ onSwitchMode }: WithdrawFormProps) {
 
   const { address: account } = useAccount();
   const { vault, refetch: refetchVault, convertToShares } = useVault();
-  const { sharePrice, decimals: vaultDecimals } = vault;
-  const { decimals: vaultAssetDecimals } = vault.asset;
 
   useContractRead({
     address: !!account ? vault.address : undefined,
@@ -64,10 +62,14 @@ function WithdrawForm({ onSwitchMode }: WithdrawFormProps) {
   });
 
   useEffect(() => {
+    refetchVault();
+  }, [refetchVault]);
+
+  useEffect(() => {
     const newRedeemAmount = convertToShares(value);
     setRedeemAmount(newRedeemAmount);
     setApproveAmount(newRedeemAmount.add(newRedeemAmount.eq(BN_ZERO) ? BN_ZERO : newRedeemAmount.add(BN_ONE)));
-  }, [convertToShares, sharePrice, value, vaultAssetDecimals]);
+  }, [convertToShares, value]);
 
   const onChangeInputValue = useCallback(
     (newValue: BigNumber | null) => {

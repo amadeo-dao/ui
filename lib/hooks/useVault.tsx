@@ -49,6 +49,7 @@ export function useVault(): UseVaultReturnType {
     functionName: 'totalSupply',
     enabled: false,
     onSuccess(data: BigNumber) {
+      if (data.eq(totalSupply)) return;
       setTotalSupply(data);
     }
   });
@@ -59,6 +60,7 @@ export function useVault(): UseVaultReturnType {
     functionName: 'totalAssets',
     enabled: false,
     onSuccess(data: BigNumber) {
+      if (data.eq(aum)) return;
       setAUM(data);
     }
   });
@@ -69,6 +71,7 @@ export function useVault(): UseVaultReturnType {
     functionName: 'assetsInUse',
     enabled: false,
     onSuccess(data: BigNumber) {
+      if (data.eq(aiu)) return;
       setAIU(data);
     }
   });
@@ -80,6 +83,7 @@ export function useVault(): UseVaultReturnType {
     args: [BN_1E(vaultDefaults.decimals)],
     enabled: false,
     onSuccess(data: BigNumber) {
+      if (data.eq(sharePrice)) return;
       setSharePrice(data);
     }
   });
@@ -100,12 +104,12 @@ export function useVault(): UseVaultReturnType {
     [sharePrice, vaultDefaults.asset.decimals]
   );
 
-  async function refetch() {
+  const refetch = useCallback(() => {
     refetchAUM();
     refetchTotalSupply();
     refetchAIU();
     refetchSharePrice();
-  }
+  }, [refetchAIU, refetchAUM, refetchSharePrice, refetchTotalSupply]);
 
   const vault: Vault = {
     address: vaultDefaults.address,

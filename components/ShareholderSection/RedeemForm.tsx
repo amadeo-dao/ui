@@ -3,7 +3,7 @@ import { Box, Button, Grid, Typography } from '@mui/material';
 import { BigNumber } from 'ethers';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount, useContractRead, usePrepareContractWrite } from 'wagmi';
-import { ADDR_DEADBEEF, BN_1E, BN_ZERO } from '../../lib/constants';
+import { ADDR_DEADBEEF, BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
 import { useVault, vaultABI } from '../../lib/hooks/useVault';
 import { isWriteSettled, TxState } from '../../lib/TxState';
@@ -26,8 +26,7 @@ function RedeemForm({ onSwitchMode }: RedeemFormProps) {
   const [txState, setTxState] = useState<TxState>('idle');
 
   const { address: account } = useAccount();
-  const { vault, refetch: refetchVault } = useVault();
-  const { sharePrice, decimals: vaultDecimals } = vault;
+  const { vault, refetch: refetchVault, convertToAssets } = useVault();
 
   useContractRead({
     address: !!account ? vault.address : undefined,
@@ -62,8 +61,14 @@ function RedeemForm({ onSwitchMode }: RedeemFormProps) {
   });
 
   useEffect(() => {
-    setWithdrawAmount(value.mul(sharePrice).div(BN_1E(vaultDecimals)));
-  }, [sharePrice, value, vaultDecimals]);
+    refetchVault();
+  }, [refetchVault]);
+
+  useEffect(() => {
+    const newWithdrawAmount = convertToAssets(value);
+    if (newWithdrawAmount.eq(withdrawAmount)) return;
+    setWithdrawAmount(newWithdrawAmount);
+  }, [convertToAssets, value, withdrawAmount]);
 
   const onChangeInputValue = useCallback(
     (newValue: BigNumber | null) => {

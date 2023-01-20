@@ -71,7 +71,7 @@ function ReturnFunds() {
   }
 
   return (
-    <Section heading="Withdraw Funds from Vault" headingAlign="center">
+    <Section heading="Return Funds to Vault" headingAlign="center">
       <Box textAlign="left">
         Assets in Wallet:&nbsp;
         {numberFormat(balance, vault.asset.symbol)}
@@ -108,7 +108,7 @@ function ReturnFunds() {
               ref={resetSendTxButton}
               icon={<CallMade></CallMade>}
             >
-              <>Return Assets</>
+              <>Return Funds</>
             </SendTxButton>
           </Grid>
           <Grid item xs={isWriteSettled(txState) ? 2 : 0} display={isWriteSettled(txState) ? 'inherit' : 'none'}>

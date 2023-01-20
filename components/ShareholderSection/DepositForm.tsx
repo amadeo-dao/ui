@@ -3,7 +3,7 @@ import { Box, Button, Grid, Typography } from '@mui/material';
 import { BigNumber } from 'ethers';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount, useBalance, usePrepareContractWrite } from 'wagmi';
-import { ADDR_DEADBEEF, BN_1E, BN_ZERO } from '../../lib/constants';
+import { ADDR_DEADBEEF, BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
 import { useVault, vaultABI } from '../../lib/hooks/useVault';
 import { isWriteSettled, TxState } from '../../lib/TxState';
@@ -25,8 +25,7 @@ function DepositForm({ onSwitchMode }: DepositFormProps) {
   const [txState, setTxState] = useState<TxState>('idle');
 
   const { address: account } = useAccount();
-  const { vault, refetch: refetchVault } = useVault();
-  const { sharePrice, decimals: vaultDecimals } = vault;
+  const { vault, refetch: refetchVault, convertToShares } = useVault();
 
   useBalance({
     address: account,
@@ -46,8 +45,14 @@ function DepositForm({ onSwitchMode }: DepositFormProps) {
   });
 
   useEffect(() => {
-    setMintAmount(value.mul(BN_1E(vaultDecimals)).div(sharePrice));
-  }, [sharePrice, value, vaultDecimals]);
+    refetchVault();
+  }, [refetchVault]);
+
+  useEffect(() => {
+    const newMintAmount = convertToShares(value);
+    if (newMintAmount.eq(mintAmount)) return;
+    setMintAmount(newMintAmount);
+  }, [convertToShares, mintAmount, value]);
 
   const onChangeInputValue = useCallback(
     (newValue: BigNumber | null) => {
