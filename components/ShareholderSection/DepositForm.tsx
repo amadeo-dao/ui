@@ -25,7 +25,8 @@ function DepositForm({ onSwitchMode }: DepositFormProps) {
   const [txState, setTxState] = useState<TxState>('idle');
 
   const { address: account } = useAccount();
-  const { vault, refetch: refetchVault, convertToShares } = useVault();
+  const { vault, refetchSharePrice, refetch: refetchVault, convertToShares } = useVault();
+  const { sharePrice } = vault;
 
   useBalance({
     address: account,

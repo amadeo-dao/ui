@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { Vault, VaultDefaults } from '../vault';
 
 import { BigNumber } from 'ethers';
@@ -28,8 +28,10 @@ const defaultVault: VaultDefaults = {
 
 export type UseVaultReturnType = {
   vault: Vault;
+  vaultMemo: { totalSupply: BigNumber };
   refetch: () => void;
   refetchAUM: () => void;
+  refetchAIU: () => void;
   refetchSharePrice: () => void;
   refetchTotalSupply: () => void;
   convertToAssets: (shares: BigNumber) => BigNumber;
@@ -43,7 +45,7 @@ export function useVault(): UseVaultReturnType {
   const [aiu, setAIU] = useState(BigNumber.from(vaultDefaults.assetsInUse));
   const [sharePrice, setSharePrice] = useState(BigNumber.from(vaultDefaults.sharePrice));
 
-  const { refetch: refetchTotalSupply } = useContractRead({
+  const { refetch: _refetchTotalSupply, isLoading: _isTotalSupplyLoading } = useContractRead({
     address: vaultDefaults.address,
     abi: vaultABI,
     functionName: 'totalSupply',
@@ -54,7 +56,12 @@ export function useVault(): UseVaultReturnType {
     }
   });
 
-  const { refetch: refetchAUM } = useContractRead({
+  const refetchTotalSupply = useCallback(() => {
+    if (_isTotalSupplyLoading) return;
+    _refetchTotalSupply();
+  }, [_refetchTotalSupply, _isTotalSupplyLoading]);
+
+  const { refetch: _refetchAUM, isLoading: _isAUMLoading } = useContractRead({
     address: vaultDefaults.address,
     abi: vaultABI,
     functionName: 'totalAssets',
@@ -65,7 +72,12 @@ export function useVault(): UseVaultReturnType {
     }
   });
 
-  const { refetch: refetchAIU } = useContractRead({
+  const refetchAUM = useCallback(() => {
+    if (_isAUMLoading) return;
+    _refetchAUM();
+  }, [_refetchAUM, _isAUMLoading]);
+
+  const { refetch: _refetchAIU, isLoading: _isAIULoading } = useContractRead({
     address: vaultDefaults.address,
     abi: vaultABI,
     functionName: 'assetsInUse',
@@ -76,7 +88,12 @@ export function useVault(): UseVaultReturnType {
     }
   });
 
-  const { refetch: refetchSharePrice } = useContractRead({
+  const refetchAIU = useCallback(() => {
+    if (_isAIULoading) return;
+    _refetchAIU();
+  }, [_refetchAIU, _isAIULoading]);
+
+  const { refetch: _refetchSharePrice, isLoading: _isSharePriceLoading } = useContractRead({
     address: vaultDefaults.address,
     abi: vaultABI,
     functionName: 'convertToAssets',
@@ -87,6 +104,11 @@ export function useVault(): UseVaultReturnType {
       setSharePrice(data);
     }
   });
+
+  const refetchSharePrice = useCallback(() => {
+    if (_isSharePriceLoading) return;
+    _refetchSharePrice();
+  }, [_refetchSharePrice, _isSharePriceLoading]);
 
   const convertToAssets = useCallback(
     (shares: BigNumber): BigNumber => {
@@ -111,6 +133,10 @@ export function useVault(): UseVaultReturnType {
     refetchSharePrice();
   }, [refetchAIU, refetchAUM, refetchSharePrice, refetchTotalSupply]);
 
+  const vaultMemo = useMemo(() => {
+    return { totalSupply };
+  }, [totalSupply]);
+
   const vault: Vault = {
     address: vaultDefaults.address,
     name: vaultDefaults.name,
@@ -128,7 +154,7 @@ export function useVault(): UseVaultReturnType {
     assetsInUse: aiu,
     sharePrice: sharePrice
   };
-  return { vault, refetch, refetchAUM, refetchSharePrice, refetchTotalSupply, convertToAssets, convertToShares };
+  return { vault, vaultMemo, refetch, refetchAIU, refetchAUM, refetchSharePrice, refetchTotalSupply, convertToAssets, convertToShares };
 }
 
 const VaultDefaultsContext = createContext(defaultVault);
