@@ -3,7 +3,7 @@ import { Box, Button, Grid, Typography } from '@mui/material';
 import { BigNumber } from 'ethers';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount, useBalance, usePrepareContractWrite } from 'wagmi';
-import { ADDR_DEADBEEF, BN_1E, BN_ONE, BN_ZERO } from '../../lib/constants';
+import { ADDR_DEADBEEF, BN_ONE, BN_ZERO } from '../../lib/constants';
 import { numberFormat } from '../../lib/formats';
 import { useVault, vaultABI } from '../../lib/hooks/useVault';
 import { isWriteSettled, TxState } from '../../lib/TxState';
@@ -27,9 +27,7 @@ function MintForm({ onSwitchMode }: MintFormProps) {
   const [txState, setTxState] = useState<TxState>('idle');
 
   const { address: account } = useAccount();
-  const { vault, refetch: refetchVault } = useVault();
-  const { sharePrice, decimals: vaultDecimals } = vault;
-  const { decimals: vaultAssetDecimal } = vault.asset;
+  const { vault, refetch: refetchVault, convertToShares, convertToAssets } = useVault();
 
   useBalance({
     address: account,
@@ -37,7 +35,7 @@ function MintForm({ onSwitchMode }: MintFormProps) {
     onSuccess: (newBalance) => {
       if (!balance.eq(newBalance.value)) {
         setBalance(newBalance.value);
-        setMaxMintAmount(balance.mul(BN_1E(vault.decimals).div(sharePrice)));
+        setMaxMintAmount(convertToShares(newBalance.value));
       }
     },
     watch: true
@@ -52,10 +50,16 @@ function MintForm({ onSwitchMode }: MintFormProps) {
   });
 
   useEffect(() => {
-    const newDepositAmount = value.mul(sharePrice).div(BN_1E(vaultAssetDecimal));
+    const newApproveAmount = depositAmount.add(depositAmount.eq(BN_ZERO) ? BN_ZERO : BN_ONE);
+    if (newApproveAmount.eq(approveAmount)) return;
+    setApproveAmount(newApproveAmount);
+  }, [approveAmount, depositAmount]);
+
+  useEffect(() => {
+    const newDepositAmount = convertToAssets(value);
+    if (newDepositAmount.eq(depositAmount)) return;
     setDepositAmount(newDepositAmount);
-    setApproveAmount(newDepositAmount.add(newDepositAmount.eq(BN_ZERO) ? BN_ZERO : newDepositAmount.add(BN_ONE)));
-  }, [sharePrice, value, vaultAssetDecimal]);
+  }, [convertToAssets, depositAmount, value]);
 
   const onChangeInputValue = useCallback(
     (newValue: BigNumber | null) => {
@@ -107,7 +111,7 @@ function MintForm({ onSwitchMode }: MintFormProps) {
             symbol={vault.symbol}
             decimals={vault.decimals}
             defaultValue={BN_ZERO}
-            maxValue={balance}
+            maxValue={maxMintAmount}
             onChange={onChangeInputValue}
             disabled={txState !== 'idle'}
           ></AssetAmountTextField>
