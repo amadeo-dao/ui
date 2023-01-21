@@ -11,6 +11,7 @@ import DocumentTitle from './components/DocumentTitle';
 import ManagerSection from './components/ManagerSection';
 import ShareholderSection from './components/ShareholderSection';
 import VaultSummary from './components/VaultSummary';
+import EvmAddress from './lib/evmAddress';
 import { InitalVaultContext } from './lib/hooks/useVault';
 
 export default function Home() {
@@ -39,7 +40,7 @@ export default function Home() {
       <WagmiConfig client={client}>
         <ConnectKitProvider theme="auto" mode="light">
           <CssBaseline />
-          <InitalVaultContext.Provider value={{ address: '0xe32a8bf47b356e6eb09f0db3300809c04ab4e02f' }}>
+          <InitalVaultContext.Provider value={{ address: process.env.REACT_APP_VAULT as EvmAddress }}>
             <DocumentTitle></DocumentTitle>
             <MainAppBar></MainAppBar>
             <VaultSummary></VaultSummary>

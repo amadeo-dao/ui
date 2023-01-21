@@ -13,7 +13,7 @@
         "request": "launch",
         "userDataDir": false,
         "runtimeArgs": ["--profile-directory=Profile 3",],
-        "url": "http://localhost:3000/vault/0xe32a8bf47b356e6eb09f0db3300809c04ab4e02f"
+        "url": "http://localhost:3000/"
       },
       {
         "name": "Next.js: debug full stack",
