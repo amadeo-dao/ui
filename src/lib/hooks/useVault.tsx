@@ -1,13 +1,12 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { BigNumber } from 'ethers';
-import { useContractRead, useToken } from 'wagmi';
-import vaultAbiJson from '../../lib/vault.abi.json';
+import { erc20ABI, useContractRead } from 'wagmi';
 import { ADDR_DEADBEEF, BN_1E, BN_ONE, BN_ZERO } from '../constants';
-import { ERC20 } from '../erc20';
 import EvmAddress from '../evmAddress';
+import vaultABIJson from '../vault.abi.json';
 
-export const vaultABI = vaultAbiJson;
+export const vaultABI = vaultABIJson;
 
 export type Vault = {
   address: EvmAddress;
@@ -27,8 +26,6 @@ export type Vault = {
   totalSupply: BigNumber;
 };
 
-export type InitialVaultInfo = { address: EvmAddress };
-
 export type UseVaultReturnType = {
   vault: Vault;
   vaultMemo: { totalSupply: BigNumber };
@@ -41,59 +38,77 @@ export type UseVaultReturnType = {
   convertToShares: (assets: BigNumber) => BigNumber;
 };
 
-export function useVault(): UseVaultReturnType {
-  const { address } = useContext(VaultContext);
-  const [name, setName] = useState<string>('');
-  const [symbol, setSymbol] = useState<string>('');
-  const [decimals, setDecimals] = useState<number>(18);
-  const [asset, setAsset] = useState<ERC20>({
-    address: ADDR_DEADBEEF,
-    name: '',
-    symbol: '',
-    decimals: 18,
-    totalSupply: BN_ZERO
-  });
+export type InitialVaultProps = {
+  address?: EvmAddress;
+};
 
-  const [assetAddress, setAssetAddress] = useState<EvmAddress>(ADDR_DEADBEEF);
+export const InitalVaultContext = createContext<InitialVaultProps>({});
+
+export function useVault(): UseVaultReturnType {
+  const { address } = useContext(InitalVaultContext);
 
   const [totalSupply, setTotalSupply] = useState(BN_ZERO);
   const [aum, setAUM] = useState(BN_ZERO);
   const [aiu, setAIU] = useState(BN_ZERO);
   const [sharePrice, setSharePrice] = useState(BN_ONE);
 
-  useToken({
-    address: address,
-    onSuccess: (data) => {
-      if (data.name !== name) setName(data.name);
-      if (data.symbol !== symbol) setSymbol(data.symbol);
-      if (data.decimals !== decimals) setDecimals(data.decimals);
-      if (!data.totalSupply.value.eq(totalSupply)) setTotalSupply(data.totalSupply.value);
-      refetchAssetAddress();
-    }
-  });
-
-  const { refetch: refetchAssetAddress } = useContractRead({
-    address: address,
+  const { data: name } = useContractRead({
+    address,
     abi: vaultABI,
-    functionName: 'asset',
-    onSuccess: (data: EvmAddress) => {
-      setAssetAddress(data);
-      refetchAsset();
-    }
+    functionName: 'name'
+  });
+  const { data: symbol } = useContractRead({
+    address,
+    abi: vaultABI,
+    functionName: 'symbol'
   });
 
-  const { refetch: refetchAsset } = useToken({
-    address: assetAddress !== ADDR_DEADBEEF ? assetAddress : undefined,
-    onSuccess: (data) => {
-      setAsset({ ...data, totalSupply: data.totalSupply.value });
-    }
+  let { data: decimals } = useContractRead({
+    address,
+    abi: vaultABI,
+    functionName: 'decimals'
   });
+  decimals = decimals ?? 18;
+
+  const { data: assetAddress } = useContractRead({
+    address: address as EvmAddress | undefined,
+    abi: vaultABI,
+    functionName: 'asset'
+  });
+
+  let { data: assetName } = useContractRead({
+    address: assetAddress as EvmAddress | undefined,
+    abi: erc20ABI,
+    functionName: 'name'
+  });
+  assetName = assetName as string;
+
+  let { data: assetSymbol } = useContractRead({
+    address: assetAddress as EvmAddress | undefined,
+    abi: erc20ABI,
+    functionName: 'symbol'
+  });
+  assetSymbol = assetSymbol as string;
+
+  let { data: assetDecimals } = useContractRead({
+    address: assetAddress as EvmAddress | undefined,
+    abi: erc20ABI,
+    functionName: 'decimals'
+  });
+  assetDecimals = assetDecimals as number;
+
+  let { data: assetTotalSupply } = useContractRead({
+    address: assetAddress as EvmAddress | undefined,
+    abi: erc20ABI,
+    functionName: 'totalSupply'
+  });
+  assetTotalSupply = assetTotalSupply as BigNumber;
 
   const { refetch: _refetchTotalSupply, isLoading: _isTotalSupplyLoading } = useContractRead({
-    address: address === ADDR_DEADBEEF ? address : undefined,
+    address: address !== ADDR_DEADBEEF ? address : undefined,
     abi: vaultABI,
     functionName: 'totalSupply',
-    enabled: false,
+    enabled: address !== ADDR_DEADBEEF,
     onSuccess(data: BigNumber) {
       if (data.eq(totalSupply)) return;
       setTotalSupply(data);
@@ -106,10 +121,10 @@ export function useVault(): UseVaultReturnType {
   }, [_refetchTotalSupply, _isTotalSupplyLoading]);
 
   const { refetch: _refetchAUM, isLoading: _isAUMLoading } = useContractRead({
-    address: address === ADDR_DEADBEEF ? address : undefined,
+    address: address !== ADDR_DEADBEEF ? address : undefined,
     abi: vaultABI,
     functionName: 'totalAssets',
-    enabled: false,
+    enabled: address !== ADDR_DEADBEEF,
     onSuccess(data: BigNumber) {
       if (data.eq(aum)) return;
       setAUM(data);
@@ -122,10 +137,10 @@ export function useVault(): UseVaultReturnType {
   }, [_refetchAUM, _isAUMLoading]);
 
   const { refetch: _refetchAIU, isLoading: _isAIULoading } = useContractRead({
-    address: address === ADDR_DEADBEEF ? address : undefined,
+    address: address !== ADDR_DEADBEEF ? address : undefined,
     abi: vaultABI,
     functionName: 'assetsInUse',
-    enabled: false,
+    enabled: address !== ADDR_DEADBEEF,
     onSuccess(data: BigNumber) {
       if (data.eq(aiu)) return;
       setAIU(data);
@@ -138,11 +153,11 @@ export function useVault(): UseVaultReturnType {
   }, [_refetchAIU, _isAIULoading]);
 
   const { refetch: _refetchSharePrice, isLoading: _isSharePriceLoading } = useContractRead({
-    address: address === ADDR_DEADBEEF ? address : undefined,
+    address: address !== ADDR_DEADBEEF ? address : undefined,
     abi: vaultABI,
     functionName: 'convertToAssets',
-    args: [BN_1E(decimals)],
-    enabled: false,
+    args: [BN_1E(decimals as number)],
+    enabled: address !== ADDR_DEADBEEF,
     onSuccess(data: BigNumber) {
       if (data.eq(sharePrice)) return;
       setSharePrice(data);
@@ -157,7 +172,7 @@ export function useVault(): UseVaultReturnType {
   const convertToAssets = useCallback(
     (shares: BigNumber): BigNumber => {
       if (shares.lte('0')) return BN_ZERO;
-      return shares.mul(sharePrice).div(BN_1E(decimals));
+      return shares.mul(sharePrice).div(BN_1E(decimals as number));
     },
     [sharePrice, decimals]
   );
@@ -165,9 +180,9 @@ export function useVault(): UseVaultReturnType {
   const convertToShares = useCallback(
     (assets: BigNumber): BigNumber => {
       if (assets.lte('0')) return BN_ZERO;
-      return assets.mul(BN_1E(asset.decimals)).div(sharePrice);
+      return assets.mul(BN_1E(assetDecimals as number)).div(sharePrice);
     },
-    [sharePrice, asset.decimals]
+    [sharePrice, assetDecimals]
   );
 
   const refetch = useCallback(() => {
@@ -181,18 +196,49 @@ export function useVault(): UseVaultReturnType {
     return { totalSupply };
   }, [totalSupply]);
 
-  const vault: Vault = {
+  const vault: Vault = useMemo(() => {
+    const asset = {
+      address: assetAddress as EvmAddress,
+      name: assetName as string,
+      symbol: assetSymbol as string,
+      decimals: assetDecimals as number,
+      totalSupply: assetTotalSupply as BigNumber
+    };
+    return {
+      address: address as EvmAddress,
+      name: name as string,
+      symbol: symbol as string,
+      decimals: decimals as number,
+      asset,
+      totalSupply,
+      assetsUnderManagement: aum,
+      assetsInUse: aiu,
+      sharePrice: sharePrice
+    };
+  }, [
     address,
-    name,
-    symbol,
+    aiu,
+    assetAddress,
+    assetDecimals,
+    assetName,
+    assetSymbol,
+    assetTotalSupply,
+    aum,
     decimals,
-    asset,
-    totalSupply,
-    assetsUnderManagement: aum,
-    assetsInUse: aiu,
-    sharePrice: sharePrice
+    name,
+    sharePrice,
+    symbol,
+    totalSupply
+  ]);
+  return {
+    vault,
+    vaultMemo,
+    refetch,
+    refetchAIU,
+    refetchAUM,
+    refetchSharePrice,
+    refetchTotalSupply,
+    convertToAssets,
+    convertToShares
   };
-  return { vault, vaultMemo, refetch, refetchAIU, refetchAUM, refetchSharePrice, refetchTotalSupply, convertToAssets, convertToShares };
 }
-
-export const VaultContext = createContext<InitialVaultInfo>({ address: ADDR_DEADBEEF });

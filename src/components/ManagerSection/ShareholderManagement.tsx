@@ -14,24 +14,28 @@ function ShareholderManagement() {
 
   const { address: manager } = useAccount();
 
-  const isActive = !!address;
+  const isActive = !!address && !!vault.address;
+  console.log(isActive);
   const { data: isShareholder, refetch: refetchIsShareholder } = useContractRead({
     address: isActive ? vault.address : undefined,
     abi: vaultABI,
     functionName: 'isShareholder',
-    args: [address ?? ADDR_DEADBEEF]
+    args: [address === null ? ADDR_DEADBEEF : address],
+    enabled: isActive
   });
   const { config: addTxConfig } = usePrepareContractWrite({
     address: isActive ? vault.address : undefined,
     abi: vaultABI,
     functionName: 'whitelistShareholder',
-    args: [address ?? ADDR_DEADBEEF]
+    args: [address === null ? ADDR_DEADBEEF : address],
+    enabled: isActive
   });
   const { config: removeTxConfig } = usePrepareContractWrite({
     address: isActive ? vault.address : undefined,
     abi: vaultABI,
     functionName: 'revokeShareholder',
-    args: [address ?? ADDR_DEADBEEF]
+    args: [address === null ? ADDR_DEADBEEF : address],
+    enabled: isActive
   });
 
   useEffect(() => {

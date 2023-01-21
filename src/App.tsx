@@ -4,15 +4,14 @@ import { goerli, mainnet } from 'wagmi/chains';
 
 import { ConnectKitProvider, getDefaultClient } from 'connectkit';
 
-import { VaultContext } from './lib/hooks/useVault';
-
 import MainAppBar from './components/MainAppBar';
-import ManagerSection from './components/ManagerSection';
-import VaultSummary from './components/VaultSummary';
 
 import { createClient, WagmiConfig } from 'wagmi';
 import DocumentTitle from './components/DocumentTitle';
+import ManagerSection from './components/ManagerSection';
 import ShareholderSection from './components/ShareholderSection';
+import VaultSummary from './components/VaultSummary';
+import { InitalVaultContext } from './lib/hooks/useVault';
 
 export default function Home() {
   const anvil = Object.assign(
@@ -39,14 +38,14 @@ export default function Home() {
     <>
       <WagmiConfig client={client}>
         <ConnectKitProvider theme="auto" mode="light">
-          <VaultContext.Provider value={{ address: '0xe32a8bf47b356e6eb09f0db3300809c04ab4e02f' }}>
-            <CssBaseline />
+          <CssBaseline />
+          <InitalVaultContext.Provider value={{ address: '0xe32a8bf47b356e6eb09f0db3300809c04ab4e02f' }}>
             <DocumentTitle></DocumentTitle>
             <MainAppBar></MainAppBar>
             <VaultSummary></VaultSummary>
             <ManagerSection></ManagerSection>
             <ShareholderSection></ShareholderSection>
-          </VaultContext.Provider>
+          </InitalVaultContext.Provider>
         </ConnectKitProvider>
       </WagmiConfig>
     </>

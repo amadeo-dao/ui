@@ -1,6 +1,5 @@
 import { Grid, Typography } from '@mui/material';
 import { ConnectKitButton } from 'connectkit';
-import { useContext } from 'react';
 import { useVault } from '../lib/hooks/useVault';
 
 export default function MainAppBar() {
