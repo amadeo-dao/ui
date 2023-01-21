@@ -54,33 +54,35 @@ export function useVault(): UseVaultReturnType {
     totalSupply: BN_ZERO
   });
 
+  const [assetAddress, setAssetAddress] = useState<EvmAddress>(ADDR_DEADBEEF);
+
   const [totalSupply, setTotalSupply] = useState(BN_ZERO);
   const [aum, setAUM] = useState(BN_ZERO);
   const [aiu, setAIU] = useState(BN_ZERO);
   const [sharePrice, setSharePrice] = useState(BN_ONE);
 
-  const { address: assetAddress, decimals: assetDecimals } = asset;
-
   useToken({
-    address: address !== ADDR_DEADBEEF ? address : undefined,
+    address: address,
     onSuccess: (data) => {
       if (data.name !== name) setName(data.name);
       if (data.symbol !== symbol) setSymbol(data.symbol);
       if (data.decimals !== decimals) setDecimals(data.decimals);
       if (!data.totalSupply.value.eq(totalSupply)) setTotalSupply(data.totalSupply.value);
+      refetchAssetAddress();
     }
   });
 
-  useContractRead({
-    address: address !== ADDR_DEADBEEF ? address : undefined,
+  const { refetch: refetchAssetAddress } = useContractRead({
+    address: address,
     abi: vaultABI,
     functionName: 'asset',
     onSuccess: (data: EvmAddress) => {
-      setAsset({ ...asset, address: data });
+      setAssetAddress(data);
+      refetchAsset();
     }
   });
 
-  useToken({
+  const { refetch: refetchAsset } = useToken({
     address: assetAddress !== ADDR_DEADBEEF ? assetAddress : undefined,
     onSuccess: (data) => {
       setAsset({ ...data, totalSupply: data.totalSupply.value });
@@ -163,9 +165,9 @@ export function useVault(): UseVaultReturnType {
   const convertToShares = useCallback(
     (assets: BigNumber): BigNumber => {
       if (assets.lte('0')) return BN_ZERO;
-      return assets.mul(BN_1E(assetDecimals)).div(sharePrice);
+      return assets.mul(BN_1E(asset.decimals)).div(sharePrice);
     },
-    [sharePrice, assetDecimals]
+    [sharePrice, asset.decimals]
   );
 
   const refetch = useCallback(() => {
