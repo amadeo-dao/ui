@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useMemo, useState } from 'react';
 
 import { BigNumber } from 'ethers';
+import { useParams } from 'react-router-dom';
 import { erc20ABI, useContractRead } from 'wagmi';
 import { ADDR_DEADBEEF, BN_1E, BN_ONE, BN_ZERO } from '../constants';
 import EvmAddress from '../evmAddress';
@@ -28,7 +29,6 @@ export type Vault = {
 
 export type UseVaultReturnType = {
   vault: Vault;
-  vaultMemo: { totalSupply: BigNumber };
   refetch: () => void;
   refetchAUM: () => void;
   refetchAIU: () => void;
@@ -45,17 +45,22 @@ export type InitialVaultProps = {
 export const InitalVaultContext = createContext<InitialVaultProps>({});
 
 export function useVault(): UseVaultReturnType {
-  const { address } = useContext(InitalVaultContext);
+  const { address } = useParams();
 
+  const [name, setName] = useState<string>('');
   const [totalSupply, setTotalSupply] = useState(BN_ZERO);
   const [aum, setAUM] = useState(BN_ZERO);
   const [aiu, setAIU] = useState(BN_ZERO);
   const [sharePrice, setSharePrice] = useState(BN_ONE);
 
-  const { data: name } = useContractRead({
+  useContractRead({
     address,
     abi: vaultABI,
-    functionName: 'name'
+    functionName: 'name',
+    onSuccess(newName: string) {
+      console.log(newName);
+      setName(newName);
+    }
   });
   const { data: symbol } = useContractRead({
     address,
@@ -192,10 +197,6 @@ export function useVault(): UseVaultReturnType {
     refetchSharePrice();
   }, [refetchAIU, refetchAUM, refetchSharePrice, refetchTotalSupply]);
 
-  const vaultMemo = useMemo(() => {
-    return { totalSupply };
-  }, [totalSupply]);
-
   const vault: Vault = useMemo(() => {
     const asset = {
       address: assetAddress as EvmAddress,
@@ -232,7 +233,6 @@ export function useVault(): UseVaultReturnType {
   ]);
   return {
     vault,
-    vaultMemo,
     refetch,
     refetchAIU,
     refetchAUM,

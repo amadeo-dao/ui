@@ -15,7 +15,6 @@ function ShareholderManagement() {
   const { address: manager } = useAccount();
 
   const isActive = !!address && !!vault.address;
-  console.log(isActive);
   const { data: isShareholder, refetch: refetchIsShareholder } = useContractRead({
     address: isActive ? vault.address : undefined,
     abi: vaultABI,
