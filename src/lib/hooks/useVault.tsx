@@ -58,7 +58,6 @@ export function useVault(): UseVaultReturnType {
     abi: vaultABI,
     functionName: 'name',
     onSuccess(newName: string) {
-      console.log(newName);
       setName(newName);
     }
   });
