@@ -104,7 +104,13 @@ function RedeemForm({ onSwitchMode }: RedeemFormProps) {
     <Box mt="1em" textAlign={'left'}>
       <Grid container spacing={1}>
         <Grid item xs={12} mb={'1em'} mt={'-0.8em'}>
-          Your shares: {numberFormat(shares, vault.symbol)}
+          Max. Sell: {numberFormat(maxRedeem, ' ')} / {numberFormat(shares, vault.symbol)}
+          {shares.gt(maxRedeem) && (
+            <Typography fontStyle={'italic'} fontWeight={'bold'} fontSize={'0.8em'} marginTop={'0.2em'}>
+              Note: The vault has not enough liquidity to buy back all of your shares because all assets are currently in use. If you need
+              to sell more, please try again later or contact the vault manager.
+            </Typography>
+          )}
         </Grid>
         <Grid item xs={6}>
           <AssetAmountTextField
@@ -151,6 +157,7 @@ function RedeemForm({ onSwitchMode }: RedeemFormProps) {
             <RestartAltOutlined />
           </Button>
         </Grid>
+        <Grid item xs={12}></Grid>
       </Grid>
     </Box>
   );

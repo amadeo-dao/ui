@@ -25,6 +25,7 @@ export type Vault = {
   assetsUnderManagement: BigNumber;
   sharePrice: BigNumber;
   totalSupply: BigNumber;
+  manager: EvmAddress;
 };
 
 export type UseVaultReturnType = {
@@ -73,6 +74,12 @@ export function useVault(): UseVaultReturnType {
     functionName: 'decimals'
   });
   decimals = decimals ?? 18;
+
+  let { data: manager } = useContractRead({
+    address,
+    abi: vaultABI,
+    functionName: 'manager'
+  });
 
   const { data: assetAddress } = useContractRead({
     address: address as EvmAddress | undefined,
@@ -213,7 +220,8 @@ export function useVault(): UseVaultReturnType {
       totalSupply,
       assetsUnderManagement: aum,
       assetsInUse: aiu,
-      sharePrice: sharePrice
+      sharePrice: sharePrice,
+      manager: manager as EvmAddress
     };
   }, [
     address,
@@ -228,7 +236,8 @@ export function useVault(): UseVaultReturnType {
     name,
     sharePrice,
     symbol,
-    totalSupply
+    totalSupply,
+    manager
   ]);
   return {
     vault,
